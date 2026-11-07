@@ -20,11 +20,15 @@
     --accent-ink: #fff;
     --line: #e2d5c3;
     --wash: #efe1cc;
+    --edge: #b9a48f;
+    --umber: #5b3a24;
+    --sienna-wash: #b8693a;
+    --verdaccio: #7f8c4f;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1f1915; --paper: #29211b; --ink: #f1e7da; --muted: #bfae9c;
-      --accent: #d98a5a; --accent-ink: #1f1915; --line: #3c3129; --wash: #30261f;
+      --accent: #d98a5a; --accent-ink: #1f1915; --line: #3c3129; --wash: #30261f; --edge: #6b5848; --umber: #e3c4a6; --sienna-wash: #c27a4c; --verdaccio: #9cab6a;
     }
   }
   * { box-sizing: border-box; }
@@ -35,7 +39,7 @@
   }
   .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1rem; }
   header.top { padding: 1.25rem 0; }
-  header.top .wrap { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  header.top .wrap { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
   .brand { font-weight: 700; letter-spacing: .02em; color: var(--ink); text-decoration: none; }
   .top a.login { color: var(--muted); font: 15px system-ui, sans-serif; }
   h1, h2, h3 { line-height: 1.2; font-weight: 700; }
@@ -50,7 +54,7 @@
   a { color: var(--accent); }
   .btns { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
   .btn {
-    display: inline-block; padding: .75rem 1.2rem; border-radius: .5rem; text-decoration: none;
+    display: inline-block; padding: .75rem 1.2rem; border-radius: 0; text-decoration: none;
     font: 600 16px/1.2 system-ui, sans-serif; border: 2px solid var(--accent);
   }
   .btn.primary { background: var(--accent); color: var(--accent-ink); }
@@ -59,7 +63,7 @@
   ul.plain li { padding: .6rem 0 .6rem 1.4rem; position: relative; }
   ul.plain li::before { content: ""; position: absolute; left: 0; top: 1.15rem; width: .6rem; height: .6rem; border-radius: 50%; background: var(--accent); opacity: .7; }
   .parts { display: grid; gap: 1rem; }
-  .card { background: var(--paper); border: 1px solid var(--line); border-radius: .75rem; padding: 1.25rem; }
+  .card { background: var(--paper); border: 1.5px solid var(--edge); border-radius: 0; padding: 1.25rem; }
   .card p { margin: .25rem 0 0; }
   .tiers { display: grid; gap: 1rem; }
   @media (min-width: 40rem) { .tiers { grid-template-columns: repeat(3, 1fr); } }
@@ -68,26 +72,78 @@
   .tier .price small { font-size: 1rem; font-weight: 400; color: var(--muted); }
   .tier ul { padding-left: 1.1rem; margin: .5rem 0 1rem; font-size: 16px; flex: 1; }
   .tier .btn { text-align: center; }
-  .tier.featured { border-color: var(--accent); }
-  .note { background: var(--wash); border-radius: .75rem; padding: 1rem 1.25rem; margin-top: 1.25rem; font-size: 16px; }
+  .note { background: var(--paper); border: 1.5px solid var(--edge); border-radius: 0; padding: 1rem 1.25rem; margin-top: 1.25rem; font-size: 16px; }
   .fromto { list-style: none; padding: 0; margin: 0; }
   .fromto li { display: grid; grid-template-columns: 1fr; gap: .15rem; padding: .8rem 0; border-bottom: 1px solid var(--line); }
   .fromto .from { color: var(--muted); }
   .fromto .arrow { color: var(--accent); font-family: system-ui, sans-serif; }
   .fromto .to { font-weight: 700; }
-  @media (min-width: 40rem) { .fromto li { grid-template-columns: 1fr 2rem 1fr; align-items: baseline; gap: .5rem; } .fromto .arrow { text-align: center; } }
+  .fromto span { text-wrap: balance; }
+  .fromto li:last-child { border-bottom: 0; }
+  @media (min-width: 48rem) {
+    .fromto { width: min(58rem, calc(100vw - 2rem)); position: relative; left: 50%; transform: translateX(-50%); }
+    .fromto li { grid-template-columns: 1fr 2.5rem 1fr; align-items: center; gap: .75rem; }
+    .fromto .from { text-align: right; }
+    .fromto .arrow { text-align: center; }
+  }
+  html, body { overflow-x: clip; }
+  section, .note { position: relative; }
+  section > *:not(.deco), .note > *:not(.deco) { position: relative; z-index: 1; }
+  .deco { position: absolute; z-index: 0; pointer-events: none; height: auto; }
+  .deco .wc { fill: var(--sienna-wash); opacity: .2; filter: url(#wc); }
+  .deco .wc.light { opacity: .13; }
+  .deco .wc.deep { opacity: .3; }
+  .deco .wc.verd { fill: var(--verdaccio); opacity: .28; }
+  .deco .sketch .guide { stroke-dasharray: 2 5; opacity: .6; }
+  .deco .sketch .rib { opacity: .7; }
+  .deco .sketch { fill: none; stroke: var(--sienna-wash); stroke-width: 1.4; stroke-linecap: round; opacity: .5; filter: url(#pencil); }
+  .deco-hero { width: 190px; top: -10px; right: -200px; }
+  .deco-layers { width: 300px; top: 1rem; left: -170px; }
+  .deco-who { width: 300px; top: 1.5rem; right: -190px; }
+  .deco-note { width: 240px; bottom: -30px; right: -50px; }
+  @media (max-width: 52rem) { .deco-hero { width: 84px; top: -14px; right: -14px; } .deco-layers { width: 200px; left: -90px; } .deco-who { width: 200px; right: -100px; } .deco-note { right: -60px; } .deco .sketch { opacity: .35; } }
+  .cake { margin: 0 0 1.75rem; display: grid; gap: 0; }
+  .cake .layer + .layer .slice { margin-top: -1.5px; }
+  .cake .top .slice { border-radius: 0; }
+  .cake .mid .slice { border-radius: 0; }
+  .cake .base .slice { border-radius: 0; }
+  .cake .layer { display: grid; grid-template-columns: 7.5rem 1fr; align-items: stretch; gap: .75rem; }
+  .cake .lname { align-self: center; text-align: left; font: 600 13px/1.2 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .cake .slice { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--paper); border: 1.5px solid var(--edge); border-radius: 0; overflow: hidden; min-height: 3.6rem; }
+  .cake .slice span { display: flex; align-items: center; justify-content: center; text-align: center; padding: .6rem .8rem; font: 600 13px/1.3 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+  .cake .slice.split span + span { border-left: 1.5px solid var(--edge); }
+  .cake figcaption { text-align: left; color: var(--muted); font-size: 16px; margin: .6rem 0 0 8.25rem; text-wrap: pretty; }
+  @media (max-width: 30rem) { .cake .layer { grid-template-columns: 1fr; gap: .25rem; } .cake .layer + .layer { margin-top: .4rem; } .cake .layer + .layer .slice { margin-top: 0; }  .cake .lname { text-align: left; } .cake figcaption { margin-left: 0; } }
+  section { border-top: 0; }
+  section.break::before { content: ""; position: absolute; top: -6px; left: -1%; width: 102%; height: 12px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20700%2012%27%20preserveAspectRatio%3D%27none%27%3E%3Cdefs%3E%3Cfilter%20id%3D%27g%27%20x%3D%270%27%20y%3D%27-50%25%27%20width%3D%27100%25%27%20height%3D%27200%25%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%271.2%202.5%27%20numOctaves%3D%272%27%20seed%3D%273%27%20result%3D%27n%27/%3E%3CfeColorMatrix%20in%3D%27n%27%20type%3D%27matrix%27%20values%3D%270%200%200%200%200%20%200%200%200%200%200%20%200%200%200%200%200%20%200%200%200%20-1.6%201.5%27%20result%3D%27m%27/%3E%3CfeComposite%20in%3D%27SourceGraphic%27%20in2%3D%27m%27%20operator%3D%27in%27/%3E%3C/filter%3E%3C/defs%3E%3Cg%20fill%3D%27none%27%20stroke%3D%27%236f6862%27%20stroke-linecap%3D%27round%27%20filter%3D%27url%28%23g%29%27%3E%3Cpath%20d%3D%27M3%206.4%20C110%205.1%20220%207.2%20350%205.6%20S590%204.6%20664%206.9%27%20stroke-width%3D%271.4%27%20stroke-opacity%3D%27.75%27/%3E%3Cpath%20d%3D%27M58%207.4%20C190%206.2%20300%208%20455%206.3%20S610%205.9%20697%205.3%27%20stroke-width%3D%271%27%20stroke-opacity%3D%27.5%27/%3E%3Cpath%20d%3D%27M14%205%20L86%204.6%27%20stroke-width%3D%27.9%27%20stroke-opacity%3D%27.45%27/%3E%3C/g%3E%3C/svg%3E") no-repeat center / 100% 100%; pointer-events: none; }
+  footer { border-top: 0; }
   details { border-bottom: 1px solid var(--line); padding: .8rem 0; }
   summary { cursor: pointer; font-weight: 700; }
   details p { margin: .5rem 0 0; }
-  footer { padding: 2.5rem 0 3rem; color: var(--muted); font-size: 15px; border-top: 1px solid var(--line); }
+  footer { padding: 2.5rem 0 3rem; color: var(--muted); font-size: 15px; }
   .muted { color: var(--muted); }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="wc" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="3" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="38" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="4" result="b"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="2" seed="4" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.9 1.35" result="g"/>
+      <feComposite in="b" in2="g" operator="in"/>
+    </filter>
+    <filter id="pencil" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" seed="2" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.5"/>
+    </filter>
+  </defs>
+</svg>
 
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="/">Underpainting</a>
     <a class="login" href="https://login.underpainting.club">Member login</a>
   </div>
 </header>
@@ -95,6 +151,18 @@
 <main class="wrap">
 
   <section class="hero">
+    <svg class="deco deco-hero" viewBox="0 0 180 260" aria-hidden="true" focusable="false">
+      <path class="wc verd" d="M40 90 C40 50 75 28 100 32 C140 36 168 70 160 110 C152 150 120 170 90 168 C58 166 40 130 40 90Z"/>
+      <path class="wc deep" d="M58 188 L122 188 L113 246 L67 246Z"/>
+      <g class="sketch">
+        <path d="M60 188 L68 246 L112 246 L120 188Z"/>
+        <line x1="105.6" y1="203.6" x2="103.4" y2="228.3"/><line x1="112.8" y1="200.8" x2="108.3" y2="233.9"/>
+        <path d="M90 186 C88 155 93 115 90 62"/>
+        <path d="M91 112 C108 100 122 90 136 84"/>
+        <path d="M89 138 C72 128 58 122 46 120"/>
+        <line x1="34" y1="247" x2="150" y2="247"/>
+      </g>
+    </svg>
     <h1>Underpainting</h1>
     <p class="tagline">the plan underneath your plan</p>
     <p class="bridge">Before painters add detail, they lay down an underpainting: a rough first layer that maps out where everything goes, so every stroke after it has something to build on. We do that for your website, app or project.</p>
@@ -106,26 +174,43 @@
   </section>
 
   <section>
-    <h2>Does any of this sound like you?</h2>
+    <h2>Where things tend to stall</h2>
     <ul class="plain">
-      <li>Your website hasn't changed in ages, and you know it's holding you back.</li>
-      <li>You've started building something, maybe with AI help, and now you're not sure how to make it real.</li>
-      <li>You know what you want to make or do, but not what goes into making it happen.</li>
-      <li>You have more ideas than time, and no idea which one matters most.</li>
-      <li>You keep meaning to post, update or fix things, and it keeps sliding to next week.</li>
-      <li>You're great at your actual job. Nobody ever showed you how this kind of project gets run.</li>
+      <li>You know what you want to make, but not what goes into making it.</li>
+      <li>You have more ideas than time, and can't tell which one matters most.</li>
+      <li>You keep meaning to update, post or fix things, and it keeps sliding to next week.</li>
     </ul>
-    <p>None of that is on you. You spent years getting good at your own field, not at how websites and apps get made. Today's AI tools and site builders can take you surprisingly far on your own, right up to the part that usually takes years to learn: what to do first, what can go wrong, and what you didn't know to ask. That's the gap we paint in.</p>
+    <p>None of that is on you. You spent years getting good at your own field, not at how websites and apps get made. AI tools and site builders can overpaint you into a corner, or leave you with expensive or hard-to-manage gaps and risks a human would have flagged. That's where you need underpainting.</p>
   </section>
 
   <section>
+    <svg class="deco deco-layers" viewBox="0 0 300 220" aria-hidden="true" focusable="false">
+      <path class="wc" d="M40 70 C70 20 170 10 230 50 C285 88 270 170 200 190 C130 210 50 180 30 130 C22 108 28 88 40 70Z"/>
+      <g class="sketch"><line x1="34.6" y1="146.3" x2="56.3" y2="174.8"/><line x1="45.6" y1="150.0" x2="59.9" y2="169.4"/><line x1="53.4" y1="149.9" x2="75.7" y2="178.5"/><line x1="57.9" y1="149.6" x2="82.6" y2="175.3"/><line x1="68.7" y1="153.1" x2="88.2" y2="172.5"/><line x1="74.0" y1="146.7" x2="100.2" y2="178.7"/><line x1="37.9" y1="177.5" x2="57.0" y2="158.0"/><line x1="52.0" y1="172.1" x2="65.4" y2="157.0"/><line x1="58.4" y1="173.6" x2="75.4" y2="154.9"/><line x1="61.0" y1="178.0" x2="80.5" y2="158.7"/><line x1="74.3" y1="172.7" x2="92.2" y2="154.5"/><line x1="20" y1="40" x2="150" y2="22"/></g>
+    </svg>
     <h2>The layers you can’t see yet</h2>
     <p>You can picture the finished thing. What you can't see yet is everything underneath it, the layers nobody tells you about. Where it lives online, what privacy rules apply, how payments work, what needs to be secure, what happens when something breaks. It's hard to plan for things you don't know exist.</p>
-    <p>We help you sketch those layers in first: what's involved, what order it goes in, what can wait, and where you need a specialist like a lawyer or accountant. Then we break it into pieces small enough to actually do. We help you catch the risks you didn't know were there, so you can focus on the painting.</p>
+    <p>Sometimes the gap is just a name. You can describe exactly what you need and picture how it should work, but if you don't know it's called a "digital asset management" system, you can't look it up, compare options or ask the right questions. Think of us as a reverse dictionary: you describe it, we tell you what it's called, so you get up to speed faster.</p>
+    <p>We help you sketch those layers in first: what's involved, what order it goes in, what can wait, and where you need a specialist like a lawyer or accountant. Then we break it into pieces small enough to actually do. We help you find the words, tools and risks you didn't know were there, so you can focus on the painting.</p>
   </section>
 
-  <section>
+  <section class="break">
     <h2>How it works</h2>
+    <figure class="cake" aria-label="Underpainting as a layer cake">
+      <div class="layer top">
+        <div class="lname">Know-how</div>
+        <div class="slice"><span>1:1 sessions</span></div>
+      </div>
+      <div class="layer mid">
+        <div class="lname">Momentum</div>
+        <div class="slice split"><span>Weekly work session</span><span>Community chat</span></div>
+      </div>
+      <div class="layer base">
+        <div class="lname">Direction</div>
+        <div class="slice"><span>Your plan: priorities and next steps</span></div>
+      </div>
+      <figcaption>Each layer builds on the one below: a clear plan, a rhythm that keeps you going, and 1:1 help filling in what you don't know yet.</figcaption>
+    </figure>
     <div class="parts">
       <div class="card" id="work-session">
         <h3>A weekly work session · free</h3>
@@ -139,7 +224,7 @@
       </div>
       <div class="card">
         <h3>1:1 project sessions and a plan you can see</h3>
-        <p>Two 45-minute sessions a month. We gather up whatever notes, ideas and half-finished pieces you have, and sort them into one shared online page: what you're doing now, what's next, what can wait, and what's done. It's the underpainting for your project: rough at first, filled in as you go, and a record of how far you've come.</p>
+        <p>Two 45-minute sessions a month. We gather up whatever notes, ideas and half-finished pieces you have, and sort them into one private online page, just for you and us: what you're doing now, what's next, what can wait, and what's done. It's the underpainting for your project: rough at first, filled in as you go, and a record of how far you've come.</p>
         <p>You can open it any time, so you never have to hold the whole project in your head or work out where you left off. We look at it together in every session and adjust it as things change.</p>
       </div>
     </div>
@@ -159,12 +244,16 @@
   </section>
 
   <section>
+    <svg class="deco deco-who" viewBox="0 0 300 200" aria-hidden="true" focusable="false">
+      <path class="wc light" d="M90 40 C150 10 250 30 270 90 C288 145 230 185 160 180 C95 176 50 140 55 95 C58 70 70 52 90 40Z"/>
+      <g class="sketch"><line x1="120" y1="120" x2="295" y2="120"/><path d="M210 120 L130 175 M210 120 L170 190 M210 120 L280 175 M210 120 L140 70"/></g>
+    </svg>
     <h2>Who it's for</h2>
     <p>People who are good at what they do, whatever that is, and who now also find themselves running a website, app or project of their own. You know your field deeply. No technical background needed, and no pressure to become technical. You own the site, app or project, and you make the calls. It's your painting. We help with what goes underneath.</p>
     <p class="muted">It isn't a done-for-you service. If you need hands-on help with a specific job, we can quote it separately.</p>
   </section>
 
-  <section id="membership">
+  <section id="membership" class="break">
     <h2>Membership</h2>
     <div class="tiers">
       <div class="card tier">
@@ -193,7 +282,7 @@
         <ul>
           <li>Everything in Community</li>
           <li>Two 45-minute 1:1 sessions a month</li>
-          <li>A shared plan for your project: now, next, later, done</li>
+          <li>Your own private plan: now, next, later, done</li>
           <li>Feedback between sessions</li>
         </ul>
         <!-- TODO: swap mailto for the Stripe Payment Link for Community + 1:1 (B03) -->
@@ -201,6 +290,10 @@
       </div>
     </div>
     <div class="note">
+      <svg class="deco deco-note" viewBox="0 0 260 160" aria-hidden="true" focusable="false">
+      <path class="wc" d="M50 40 C100 5 200 15 230 60 C255 100 215 150 140 148 C70 146 25 115 28 80 C30 62 38 50 50 40Z"/>
+      <g class="sketch"><line x1="31.1" y1="127.9" x2="47.1" y2="111.6"/><line x1="40.4" y1="126.2" x2="57.3" y2="109.3"/><line x1="48.3" y1="129.1" x2="63.1" y2="110.4"/><line x1="57.6" y1="128.2" x2="68.9" y2="112.5"/><line x1="61.0" y1="132.3" x2="78.3" y2="111.5"/></g>
+    </svg>
       <strong>Not sure yet?</strong> <a href="https://book.underpainting.club">Book a free 20-minute intro call</a>.<!-- TODO: point at the exact Tymeslot intro-call page once B09 is done. -->
       <br><br>
       <strong>Can't afford it right now?</strong> Ask for free or reduced access. Tell us a bit about your situation and what you can pay ($0 is fine). No proof needed. There are a limited number of places.
@@ -225,7 +318,7 @@
     </details>
     <details>
       <summary>Who runs Underpainting?</summary>
-      <p>Underpainting is run by someone who went to art school, then spent years as a project, product and program manager for individuals and organizations of every size and kind, including heavily regulated fields like security and energy. That's where they learned to spot the big gotchas early: the rules, requirements and dependencies that are easy to miss if you haven't been through them before. They also have ADHD, so they know firsthand what it's like to have solid ideas and a hard time keeping the work flowing. Art school is where the name comes from. The rest is how the plan gets made.</p>
+      <p>Underpainting is run by someone who went to art school, started out in tech support helping people who just needed things to work, then spent years as a project, product and program manager. At web agencies, they turned fuzzy ideas into briefs and led the teams that built the sites and apps. They've also worked with individuals and organizations of every size and kind, including a large open-source nonprofit and heavily regulated fields like security and energy. At a large consumer app, they ran software governance: matching needs to the right tools, and knowing what a tool has to meet legally, financially and for security. Along the way they learned to keep lots of moving parts going, bring in the right help as needs come up, and spot the big gotchas early. Most of all, they know how to right-size things, so you don't overbuild, and you don't paint yourself into a corner either. They also have ADHD, so they know firsthand what it's like to have solid ideas and a hard time keeping the work flowing. Art school is where the name comes from. The rest is how the plan gets made.</p>
     </details>
     <details>
       <summary>Can I cancel?</summary>
