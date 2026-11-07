@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Underpainting · the plan underneath your plan</title>
+<meta name="description" content="A small community and 1:1 project sessions that keep your website, app or project moving toward the results you want from it.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23a0522d'/%3E%3Cpath d='M8 22c4-8 12-12 16-12' stroke='%23f6efe4' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<!--
+  No external requests on purpose: no fonts, scripts, analytics or cookies.
+  PLACEHOLDERS to replace before launch are marked TODO.
+-->
+<style>
+  :root {
+    --bg: #f6efe4;        /* raw canvas */
+    --paper: #fbf7f0;
+    --ink: #2b211a;       /* umber */
+    --muted: #6b5a4c;
+    --accent: #a0522d;    /* burnt sienna */
+    --accent-ink: #fff;
+    --line: #e2d5c3;
+    --wash: #efe1cc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1915; --paper: #29211b; --ink: #f1e7da; --muted: #bfae9c;
+      --accent: #d98a5a; --accent-ink: #1f1915; --line: #3c3129; --wash: #30261f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 18px/1.6 Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; padding: 0 1rem; }
+  header.top { padding: 1.25rem 0; }
+  header.top .wrap { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+  .brand { font-weight: 700; letter-spacing: .02em; color: var(--ink); text-decoration: none; }
+  .top a.login { color: var(--muted); font: 15px system-ui, sans-serif; }
+  h1, h2, h3 { line-height: 1.2; font-weight: 700; }
+  h1 { font-size: clamp(2.4rem, 8vw, 3.6rem); margin: 2.5rem 0 .25rem; letter-spacing: -.01em; }
+  .tagline { font-size: 1.35rem; color: var(--accent); font-style: italic; margin: 0 0 1.5rem; }
+  .lede { font-size: 1.15rem; }
+  .bridge { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--muted); margin: 0 0 1.5rem; }
+  h2 { font-size: 1.6rem; margin: 0 0 1rem; }
+  h3 { font-size: 1.15rem; margin: 0 0 .35rem; }
+  section { padding: 3rem 0; border-top: 1px solid var(--line); }
+  section.hero { border-top: 0; padding-top: 0; }
+  a { color: var(--accent); }
+  .btns { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+  .btn {
+    display: inline-block; padding: .75rem 1.2rem; border-radius: .5rem; text-decoration: none;
+    font: 600 16px/1.2 system-ui, sans-serif; border: 2px solid var(--accent);
+  }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.ghost { color: var(--accent); background: transparent; }
+  ul.plain { list-style: none; padding: 0; margin: 0; }
+  ul.plain li { padding: .6rem 0 .6rem 1.4rem; position: relative; }
+  ul.plain li::before { content: ""; position: absolute; left: 0; top: 1.15rem; width: .6rem; height: .6rem; border-radius: 50%; background: var(--accent); opacity: .7; }
+  .parts { display: grid; gap: 1rem; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: .75rem; padding: 1.25rem; }
+  .card p { margin: .25rem 0 0; }
+  .tiers { display: grid; gap: 1rem; }
+  @media (min-width: 40rem) { .tiers { grid-template-columns: repeat(3, 1fr); } }
+  .tier { display: flex; flex-direction: column; }
+  .tier .price { font-size: 1.8rem; font-weight: 700; margin: .25rem 0; }
+  .tier .price small { font-size: 1rem; font-weight: 400; color: var(--muted); }
+  .tier ul { padding-left: 1.1rem; margin: .5rem 0 1rem; font-size: 16px; flex: 1; }
+  .tier .btn { text-align: center; }
+  .tier.featured { border-color: var(--accent); }
+  .note { background: var(--wash); border-radius: .75rem; padding: 1rem 1.25rem; margin-top: 1.25rem; font-size: 16px; }
+  .fromto { list-style: none; padding: 0; margin: 0; }
+  .fromto li { display: grid; grid-template-columns: 1fr; gap: .15rem; padding: .8rem 0; border-bottom: 1px solid var(--line); }
+  .fromto .from { color: var(--muted); }
+  .fromto .arrow { color: var(--accent); font-family: system-ui, sans-serif; }
+  .fromto .to { font-weight: 700; }
+  @media (min-width: 40rem) { .fromto li { grid-template-columns: 1fr 2rem 1fr; align-items: baseline; gap: .5rem; } .fromto .arrow { text-align: center; } }
+  details { border-bottom: 1px solid var(--line); padding: .8rem 0; }
+  summary { cursor: pointer; font-weight: 700; }
+  details p { margin: .5rem 0 0; }
+  footer { padding: 2.5rem 0 3rem; color: var(--muted); font-size: 15px; border-top: 1px solid var(--line); }
+  .muted { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/">Underpainting</a>
+    <a class="login" href="https://login.underpainting.club">Member login</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1>Underpainting</h1>
+    <p class="tagline">the plan underneath your plan</p>
+    <p class="bridge">Before painters add detail, they lay down an underpainting: a rough first layer that maps out where everything goes, so every stroke after it has something to build on. We do that for your website, app or project.</p>
+    <p class="lede">A small community and 1:1 project sessions for people who are experts in their own field and are building a website, app or project of their own. We help you work out what to do next, sit with you while you do it, and keep the work turning into results.</p>
+    <div class="btns">
+      <a class="btn primary" href="#work-session">Join a free work session</a>
+      <a class="btn ghost" href="#membership">See membership</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Does any of this sound like you?</h2>
+    <ul class="plain">
+      <li>Your website hasn't changed in ages, and you know it's holding you back.</li>
+      <li>You've started building something, maybe with AI help, and now you're not sure how to make it real.</li>
+      <li>You know what you want to make or do, but not what goes into making it happen.</li>
+      <li>You have more ideas than time, and no idea which one matters most.</li>
+      <li>You keep meaning to post, update or fix things, and it keeps sliding to next week.</li>
+      <li>You're great at your actual job. Nobody ever showed you how this kind of project gets run.</li>
+    </ul>
+    <p>That's not a character flaw. Like a painting that keeps getting reworked, most of this work never really "finishes". It needs something solid underneath, a steady rhythm, and people around you.</p>
+  </section>
+
+  <section>
+    <h2>The layers you can’t see yet</h2>
+    <p>You can picture the finished thing. What you can't see yet is everything underneath it, the layers nobody tells you about. Where it lives online, what privacy rules apply, how payments work, what needs to be secure, what happens when something breaks. It's hard to plan for things you don't know exist.</p>
+    <p>We help you sketch those layers in first: what's involved, what order it goes in, what can wait, and where you need a specialist like a lawyer or accountant. Then we break it into pieces small enough to actually do.</p>
+  </section>
+
+  <section>
+    <h2>How it works</h2>
+    <div class="parts">
+      <div class="card" id="work-session">
+        <h3>A weekly work session · free</h3>
+        <p>Once a week we meet on video, say what we're each working on, then work quietly side by side for an hour, like painters sharing a studio. (Some people call this body doubling.) It's free with sign-up.</p>
+        <!-- TODO: replace mailto with the real sign-up once B10 picks the time and link. -->
+        <p><a href="mailto:hello@underpainting.club?subject=Sign%20me%20up%20for%20the%20weekly%20work%20session">Sign up for the work session</a> <span class="muted">· time to be announced</span></p>
+      </div>
+      <div class="card">
+        <h3>A small community</h3>
+        <p>A private chat space where members share what they're working on, ask questions, and show what they've made. On our own server, with no ads and no algorithm.</p>
+      </div>
+      <div class="card">
+        <h3>1:1 project sessions and a plan you can see</h3>
+        <p>Two 45-minute sessions a month. We gather up whatever notes, ideas and half-finished pieces you have, and sort them into one shared online page: what you're doing now, what's next, what can wait, and what's done. It's the underpainting for your project: rough at first, filled in as you go, and a record of how far you've come.</p>
+        <p>You can open it any time, so you never have to hold the whole project in your head or work out where you left off. We look at it together in every session and adjust it as things change.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What changes</h2>
+    <ul class="fromto" aria-label="From, to">
+      <li><span class="from">Not knowing what you don’t know</span><span class="arrow" aria-hidden="true">→</span><span class="to">Seeing what’s underneath before you start</span></li>
+      <li><span class="from">Ideas scattered across notes, tabs and your head</span><span class="arrow" aria-hidden="true">→</span><span class="to">One plan you can open any time</span></li>
+      <li><span class="from">Not sure which thing matters most</span><span class="arrow" aria-hidden="true">→</span><span class="to">Knowing what's next, and why</span></li>
+      <li><span class="from">“I’ll get to it next week”</span><span class="arrow" aria-hidden="true">→</span><span class="to">A weekly hour where it actually happens</span></li>
+      <li><span class="from">Stuck on a question with no one to ask</span><span class="arrow" aria-hidden="true">→</span><span class="to">People to ask, and people working alongside you</span></li>
+      <li><span class="from">Starting from scratch every time you come back</span><span class="arrow" aria-hidden="true">→</span><span class="to">Picking up right where you left off</span></li>
+      <li><span class="from">Busy, but not sure it’s going anywhere</span><span class="arrow" aria-hidden="true">→</span><span class="to">Work turning into results you can see</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Who it's for</h2>
+    <p>People who are good at what they do, whatever that is, and who now also find themselves running a website, app or project of their own. You know your field deeply. You don't need a technical background, and you don't need to want one. You own the site, app or project, and you make the calls. It's your painting. We help with what goes underneath.</p>
+    <p class="muted">It isn't a done-for-you service. If you need hands-on help with a specific job, we can quote it separately.</p>
+  </section>
+
+  <section id="membership">
+    <h2>Membership</h2>
+    <div class="tiers">
+      <div class="card tier">
+        <h3>Work session</h3>
+        <div class="price">Free</div>
+        <ul>
+          <li>The weekly work session</li>
+          <li>Sign up once, come when you can</li>
+        </ul>
+        <a class="btn ghost" href="#work-session">Sign up</a>
+      </div>
+      <div class="card tier">
+        <h3>Community</h3>
+        <div class="price">$15 <small>/ month</small></div>
+        <ul>
+          <li>The weekly work session</li>
+          <li>The members' community space</li>
+          <li>Cancel any time</li>
+        </ul>
+        <!-- TODO: swap mailto for the Stripe Payment Link for Community (B03) -->
+        <a class="btn primary" href="mailto:hello@underpainting.club?subject=I%27d%20like%20to%20join%20Community">Join Community</a>
+      </div>
+      <div class="card tier featured">
+        <h3>Community + 1:1</h3>
+        <div class="price">$150 <small>/ month</small></div>
+        <ul>
+          <li>Everything in Community</li>
+          <li>Two 45-minute 1:1 sessions a month</li>
+          <li>A shared plan for your project: now, next, later, done</li>
+          <li>Feedback between sessions</li>
+        </ul>
+        <!-- TODO: swap mailto for the Stripe Payment Link for Community + 1:1 (B03) -->
+        <a class="btn primary" href="mailto:hello@underpainting.club?subject=I%27d%20like%20to%20join%20Community%20%2B%201%3A1">Join with 1:1</a>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Not sure yet?</strong> <a href="https://book.underpainting.club">Book a free 20-minute intro call</a>.<!-- TODO: point at the exact Tymeslot intro-call page once B09 is done. -->
+      <br><br>
+      <strong>Can't afford it right now?</strong> Ask for free or reduced access. Tell us a bit about your situation and what you can pay ($0 is fine). No proof needed. There are a limited number of places.
+      <!-- TODO: swap for the B11 form if it ends up somewhere other than email. -->
+      <a href="mailto:hello@underpainting.club?subject=Free%20or%20reduced%20access%20request&amp;body=What%20are%20you%20working%20on%3F%0A%0AWhich%20membership%20would%20help%3F%20(Community%20or%20Community%20%2B%201%3A1)%0A%0AWhat%20can%20you%20pay%20each%20month%3F%20(%240%20is%20fine)%0A%0AAnything%20else%20you%27d%20like%20us%20to%20know%3F%0A">Request access</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Questions</h2>
+    <details>
+      <summary>Do I need to be technical?</summary>
+      <p>No. You never need to open a code editor. We talk about your project in your terms, not jargon.</p>
+    </details>
+    <details>
+      <summary>Will you build it for me?</summary>
+      <p>That's not what membership is. You stay in charge of your own work, and we help you plan it, prioritise it and keep it moving. If there's a specific job you'd rather hand off, ask and we'll quote it.</p>
+    </details>
+    <details>
+      <summary>What if my project never really "finishes"?</summary>
+      <p>Most don't, and that's fine. Painters rework a canvas for years, and websites, apps and projects keep going too. The goal is steady progress toward the results you want from it.</p>
+    </details>
+    <details>
+      <summary>Who runs Underpainting?</summary>
+      <!-- TODO: your words here. Describe the role, not a personal brand. -->
+      <p>Your sessions are with the project manager who runs Underpainting, who has spent years turning messy piles of ideas into plans that actually get done.</p>
+    </details>
+    <details>
+      <summary>Can I cancel?</summary>
+      <p>Yes, any time, from your account. Beta members keep the price they join at for as long as they stay.</p>
+    </details>
+  </section>
+
+  <section id="privacy">
+    <h2>Privacy</h2>
+    <p>This site has no trackers, no analytics, no ads and no cookies. The community, login and project plans run on our own small servers, not on an ad platform. Payments go through Stripe. We never sell or share your information.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Underpainting · <a href="mailto:hello@underpainting.club">hello@underpainting.club</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
