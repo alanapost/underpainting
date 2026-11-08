@@ -37,12 +37,17 @@
 })();
 
 // Join a Daily room inside the page. Daily's own knock screen still decides who gets in.
+// Brand colours for Daily's call screen (from underpainting.club/brand/).
+var CALL_THEME = {
+  light: { colors: { accent: '#7c3f25', accentText: '#ffffff', background: '#f8f4ec', backgroundAccent: '#ece2d1', baseText: '#2a221d', border: '#e0d5c4', mainAreaBg: '#2a221d', mainAreaBgAccent: '#3a3029', mainAreaText: '#f2ece1', supportiveText: '#6b5b4d' } },
+  dark: { colors: { accent: '#d08a5c', accentText: '#1e1915', background: '#27201b', backgroundAccent: '#2e251f', baseText: '#efe6da', border: '#3a3029', mainAreaBg: '#1e1915', mainAreaBgAccent: '#2e251f', mainAreaText: '#efe6da', supportiveText: '#bba996' } }
+};
 function joinRoom(url, stageId, quiet) {
   var stage = document.getElementById(stageId);
   if (!window.Daily || !stage) { window.location.href = url; return false; }
   if (stage.dataset.on) { stage.scrollIntoView({ behavior: 'smooth' }); return false; }
   stage.dataset.on = '1';
-  var call = window.Daily.createFrame(stage, { showLeaveButton: true, showFullscreenButton: true, iframeStyle: { width: '100%', height: 'min(75vh, 40rem)', border: '0' } });
+  var call = window.Daily.createFrame(stage, { showLeaveButton: true, showFullscreenButton: true, theme: CALL_THEME, iframeStyle: { width: '100%', height: 'min(75vh, 40rem)', border: '0' } });
   call.on('left-meeting', function () { call.destroy(); stage.innerHTML = ''; delete stage.dataset.on; });
   call.join({ url: url });
   if (!quiet) stage.scrollIntoView({ behavior: 'smooth' });
