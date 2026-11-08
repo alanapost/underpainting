@@ -158,6 +158,28 @@
   .vig .sketch .g { stroke: var(--muted); opacity: .55; }
   .vig .sketch .faint { opacity: .5; }
   .deco .sketch { stroke: var(--sanguine); }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* How it works: tinted band + plan demo */
+  section.how { position: relative; background: var(--wash); margin: 1.5rem calc(50% - 50vw); padding: 3.5rem calc(50vw - 50%); }
+  section.how > * { max-width: 44rem; }
+  .how .parts { display: grid; gap: 2rem; margin-top: 2.5rem; }
+  .how .part h3 { margin: 0 0 .35rem; }
+  .how .part p { margin: .35rem 0 0; }
+  .plan { margin: 2.5rem 0 0; }
+  .plan .cols { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .plan .col { display: grid; grid-template-rows: auto 1fr; gap: .4rem; }
+  .plan .col b { font: italic 500 1.2rem/1 'Cormorant Garamond', Georgia, serif; color: var(--muted); }
+  .plan .groove { height: 4.6rem; background: color-mix(in srgb, var(--edge) 22%, var(--wash)); box-shadow: inset 0 2px 3px rgba(60,40,25,.22), inset 0 -1px 0 rgba(255,255,255,.35); }
+  .plan .tile { position: absolute; left: 0; bottom: 0; height: 4.6rem; padding: .45rem .55rem; display: flex; align-items: center; background: var(--paper); color: var(--ink); border: 0; border-left: 3px solid var(--sanguine); font: 500 1.05rem/1.15 'Cormorant Garamond', Georgia, serif; text-align: left; cursor: grab; box-shadow: 0 1px 1px rgba(60,40,25,.18), 0 3px 8px rgba(60,40,25,.14); transition: transform .55s cubic-bezier(.3,1.45,.55,1), box-shadow .2s; will-change: transform; }
+  .plan .tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .plan .tile.drag { cursor: grabbing; transition: none; box-shadow: 0 2px 2px rgba(60,40,25,.18), 0 10px 22px rgba(60,40,25,.22); }
+  .plan .tile .tick { position: absolute; right: .35rem; bottom: .3rem; width: 1rem; height: 1rem; stroke: var(--sanguine); stroke-width: 2; fill: none; stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset .35s ease .25s; }
+  .plan .tile.done .tick { stroke-dashoffset: 0; }
+  .plan .tile.done { color: var(--muted); }
+  .plan figcaption { color: var(--muted); font-size: 16px; margin-top: .7rem; }
+  @media (prefers-reduced-motion: reduce) { .plan .tile, .plan .tile .tick { transition: none; } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .plan .groove { box-shadow: inset 0 2px 4px rgba(0,0,0,.5); } }
 </style>
 </head>
 <body>
@@ -216,7 +238,7 @@
   </section>
 
   <div class="vig" aria-hidden="true"><svg viewBox="0 0 200 90" focusable="false"><path class="wc ve" d="M20 58 L180 58 L176 76 L24 76Z"/><path class="wc oc" d="M22 20 L178 22 L176 54 L24 54Z"/><g class="sketch"><path d="M14 57 C70 56.2 130 57.8 186 56.8" class="g"/><path d="M28 34 L172 33"/><path d="M48 57 C58 36 142 36 152 57"/><path d="M48 34 L48 57 M152 33 L152 57"/><path d="M48 57 C58 72 142 72 152 57" class="faint"/><line x1="32.5" y1="64.0" x2="43.7" y2="64.0"/><line x1="56.0" y1="69.0" x2="67.2" y2="69.0"/><line x1="76.5" y1="64.0" x2="90.0" y2="64.0"/><line x1="102.4" y1="69.0" x2="113.1" y2="69.0"/><line x1="128.3" y1="64.0" x2="138.2" y2="64.0"/><line x1="149.0" y1="69.0" x2="164.1" y2="69.0"/><line x1="54.0" y1="37.2" x2="54.0" y2="48.4"/><line x1="58.0" y1="38.2" x2="58.0" y2="47.3"/><line x1="62.0" y1="37.8" x2="62.0" y2="47.1"/><line x1="66.0" y1="37.4" x2="66.0" y2="45.7"/><line x1="70.0" y1="39.4" x2="70.0" y2="46.3"/></g></svg></div>
-  <section>
+  <section class="how">
     <h2>How it works</h2>
     <figure class="cake" aria-label="Underpainting as a layer cake">
       <div class="layer top">
@@ -233,18 +255,29 @@
       </div>
       <figcaption>Each layer builds on the one below: a clear plan, a rhythm that keeps you going, and 1:1 help filling in what you don’t know yet.</figcaption>
     </figure>
+    <figure class="plan" aria-label="Example of your plan">
+      <div class="cols">
+        <div class="col"><b>now</b><div class="groove"></div></div>
+        <div class="col"><b>next</b><div class="groove"></div></div>
+        <div class="col"><b>later</b><div class="groove"></div></div>
+        <div class="col"><b>done</b><div class="groove"></div></div>
+        <button type="button" class="tile" aria-describedby="plan-help">Fix the menu<svg class="tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8.5 L6.5 12.5 L13.5 3.5"/></svg></button>
+      </div>
+      <figcaption id="plan-help">Your plan, in one line: now, next, later, done. Slide the tile along, or tap it.</figcaption>
+      <p class="sr" aria-live="polite"></p>
+    </figure>
     <div class="parts">
-      <div class="card" id="work-session">
+      <div class="part" id="work-session">
         <h3>A weekly work session · free</h3>
         <p>Once a week we meet on video, say what we’re each working on, then work quietly side by side for an hour, like artists sharing a studio. (Some people call this body doubling.) Bring any task, from your project to email or paperwork. It’s free with sign-up.</p>
         <!-- TODO: replace mailto with the real sign-up link once B10 has one. -->
         <p><a href="mailto:hello@underpainting.club?subject=Sign%20me%20up%20for%20the%20weekly%20work%20session">Sign up for the work session</a> <span class="muted">· Wednesdays, 10–11:30am Pacific (1–2:30pm Eastern)</span></p>
       </div>
-      <div class="card">
+      <div class="part">
         <h3>A small community</h3>
         <p>A private chat space where members share what they’re working on, ask questions, and show what they’ve made. It’s light on purpose: come when you can. Most of us find work goes easier in company.</p>
       </div>
-      <div class="card">
+      <div class="part">
         <h3>1:1 project sessions and a plan you can see</h3>
         <p>Two 45-minute sessions a month. Nobody does the work for you, runs your project, or acts as your therapist. You get just enough guidance to stay focused and keep moving, and you make the calls. Together you work out the point of what you’re doing and the smallest version that gets you there, then build on it one piece at a time.</p>
         <p>Your first session gathers your notes, ideas and half-finished pieces into one private page: now, next, later, done. It gets a look in every session so it never goes stale, and it’s yours to export any time.</p>
@@ -362,5 +395,24 @@
   </div>
 </footer>
 
+<script>
+(function(){
+  var f=document.querySelector('.plan'); if(!f) return;
+  var cols=f.querySelector('.cols'), g=[].slice.call(f.querySelectorAll('.groove')), t=f.querySelector('.tile'), live=f.querySelector('[aria-live]');
+  var names=['now','next','later','done'], at=2, still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function x(i){ return g[i].offsetLeft; }
+  function size(){ t.style.width=g[0].offsetWidth+'px'; t.style.transform='translateX('+x(at)+'px)'; }
+  function go(i,say){ at=Math.max(0,Math.min(3,i)); t.style.transform='translateX('+x(at)+'px)'; t.classList.toggle('done',at===3); if(say) live.textContent='Moved to '+names[at]+'.'; }
+  size(); addEventListener('resize',size);
+  var sx=0, ox=0, moved=false, id=null;
+  t.addEventListener('pointerdown',function(e){ id=e.pointerId; t.setPointerCapture(id); sx=e.clientX; ox=x(at); moved=false; t.classList.add('drag'); });
+  t.addEventListener('pointermove',function(e){ if(id!==e.pointerId) return; var d=e.clientX-sx; if(Math.abs(d)>4) moved=true; var max=x(3); t.style.transform='translateX('+Math.max(-8,Math.min(max+8,ox+d))+'px)'; });
+  function end(e){ if(id!==e.pointerId) return; id=null; t.classList.remove('drag'); if(!moved) return; var p=ox+e.clientX-sx, best=0; g.forEach(function(_,i){ if(Math.abs(x(i)-p)<Math.abs(x(best)-p)) best=i; }); go(best,true); }
+  t.addEventListener('pointerup',end); t.addEventListener('pointercancel',end);
+  t.addEventListener('click',function(e){ if(moved){ moved=false; return; } go(at===3?0:at===0?3:at-1,true); });
+  t.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft'){ go(at-1,true); e.preventDefault(); } if(e.key==='ArrowRight'){ go(at+1,true); e.preventDefault(); } });
+  if(!still && 'IntersectionObserver' in window){ var o=new IntersectionObserver(function(es){ if(es[0].isIntersecting){ o.disconnect(); setTimeout(function(){go(1)},500); setTimeout(function(){go(0)},1300); setTimeout(function(){go(3)},2600); } },{threshold:.6}); o.observe(f); }
+})();
+</script>
 </body>
 </html>
