@@ -1,0 +1,18 @@
+# Deploys the members app to Fly.io when its files change on main.
+name: Deploy members app
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", "members/**", "Dockerfile", "fly.toml"]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency: deploy-members-app
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test app/server.test.mjs
+      - uses: superfly/flyctl-actions/setup-flyctl@1.5
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
