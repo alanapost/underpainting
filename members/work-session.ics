@@ -1,0 +1,33 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Underpainting//Work session//EN
+CALSCALE:GREGORIAN
+BEGIN:VTIMEZONE
+TZID:America/Los_Angeles
+BEGIN:DAYLIGHT
+TZOFFSETFROM:-0800
+TZOFFSETTO:-0700
+TZNAME:PDT
+DTSTART:19700308T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0700
+TZOFFSETTO:-0800
+TZNAME:PST
+DTSTART:19701101T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:work-session@underpainting.club
+DTSTAMP:20261108T000000Z
+DTSTART;TZID=America/Los_Angeles:20261111T100000
+DTEND;TZID=America/Los_Angeles:20261111T113000
+RRULE:FREQ=WEEKLY;BYDAY=WE
+SUMMARY:Underpainting work session
+LOCATION:https://underpainting.daily.co/work-session
+DESCRIPTION:Say what you're working on\, then work side by side for an hour.\nJoin: https://underpainting.daily.co/work-session\nMember page: https://underpainting.club/members/
+URL:https://underpainting.club/members/
+END:VEVENT
+END:VCALENDAR
