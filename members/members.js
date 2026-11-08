@@ -29,6 +29,7 @@
       if (join) join.textContent = 'Join now';
       if (plan) plan.hidden = false;
       if (cal) cal.hidden = true;
+      document.body.dataset.live = '1';
     } else {
       when.textContent = new Date(start).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) + ', ' + t(start) + '\u2013' + t(end, { timeZoneName: 'short' });
     }
@@ -36,7 +37,7 @@
 })();
 
 // Join a Daily room inside the page. Daily's own knock screen still decides who gets in.
-function joinRoom(url, stageId) {
+function joinRoom(url, stageId, quiet) {
   var stage = document.getElementById(stageId);
   if (!window.Daily || !stage) { window.location.href = url; return false; }
   if (stage.dataset.on) { stage.scrollIntoView({ behavior: 'smooth' }); return false; }
@@ -44,6 +45,6 @@ function joinRoom(url, stageId) {
   var call = window.Daily.createFrame(stage, { showLeaveButton: true, showFullscreenButton: true, iframeStyle: { width: '100%', height: 'min(75vh, 40rem)', border: '0' } });
   call.on('left-meeting', function () { call.destroy(); stage.innerHTML = ''; delete stage.dataset.on; });
   call.join({ url: url });
-  stage.scrollIntoView({ behavior: 'smooth' });
+  if (!quiet) stage.scrollIntoView({ behavior: 'smooth' });
   return false;
 }

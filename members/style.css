@@ -50,7 +50,7 @@ h2 + * { margin-top: .5rem; }
 ul.links { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--line); }
 ul.links li { border-bottom: 1px solid var(--line); }
 ul.links a { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 1rem; padding: .9rem 0; text-decoration: none; }
-ul.links a span:last-child { color: var(--muted); font-size: 16px; }
+ul.links a span:last-child { color: var(--muted); font-size: 16px; text-align: right; }
 ul.links a:hover span:first-child { text-decoration: underline; }
 
 .stage { margin-top: 1.5rem; }
@@ -62,3 +62,9 @@ footer { padding: 4rem 0 3rem; font-size: 16px; color: var(--muted); }
 .dot { display: inline-block; width: .5em; height: .5em; border-radius: 50%; background: currentColor; margin-right: .5em; vertical-align: .1em; animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
 @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.cols { display: grid; gap: 2rem; }
+@media (min-width: 34rem) { .cols { grid-template-columns: 1fr 1fr; } }
+.cols p.muted { margin-top: .5rem; }
+.go { margin-top: .75rem; }
+section > h2 + .when { margin-top: .5rem; }
+section > h2 + ul.links { margin-top: 1rem; }
