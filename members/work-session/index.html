@@ -29,8 +29,9 @@
       <p class="when" id="ws-when">Wednesdays, 10–11:30am Pacific (1–2:30pm Eastern)</p>
       <p class="muted" id="ws-note">We start with a quick round of what everyone’s working on, then work quietly side by side for an hour.</p>
       <div class="btns">
-        <a class="btn primary" href="https://underpainting.daily.co/work-session" onclick="return joinRoom(this.href, 'ws-stage')">Join the work session</a>
-        <a class="btn ghost" href="/members/work-session.ics" download>Add to my calendar</a>
+        <a class="btn primary" id="ws-join" href="https://underpainting.daily.co/work-session" onclick="return joinRoom(this.href, 'ws-stage')">Join the work session</a>
+        <a class="btn ghost" id="ws-cal" href="/members/work-session.ics" download>Add to my calendar</a>
+        <a class="btn ghost" id="ws-plan" href="https://plan.underpainting.club" hidden>Open your plan</a>
       </div>
       <div class="stage" id="ws-stage"></div>
       <p class="sub">You’ll wait a moment at the door until we let you in. On a phone, or if the video looks cramped, <a href="https://underpainting.daily.co/work-session" target="_blank" rel="noopener">open it in a full window</a>.</p>

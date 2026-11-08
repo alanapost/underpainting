@@ -23,7 +23,11 @@
     var when = document.getElementById('ws-when'), note = document.getElementById('ws-note');
     if (!when) return;
     if (now >= start - EARLY_MIN * 6e4 && now < end) {
-      when.innerHTML = '<span class="live">Happening now</span>';
+      when.innerHTML = '<span class="live"><span class="dot" aria-hidden="true"></span>Happening now</span>';
+      var join = document.getElementById('ws-join'), plan = document.getElementById('ws-plan'), cal = document.getElementById('ws-cal');
+      if (join) join.innerHTML = '<span class="dot" aria-hidden="true"></span>Join now';
+      if (plan) plan.hidden = false;
+      if (cal) cal.hidden = true;
       note.textContent = 'Come in any time until ' + new Date(end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.';
     } else {
       var d = new Date(start);
