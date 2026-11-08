@@ -158,6 +158,12 @@
   .vig .sketch .g { stroke: var(--muted); opacity: .55; }
   .vig .sketch .faint { opacity: .5; }
   .deco .sketch { stroke: var(--sanguine); }
+  /* live work session */
+  .live-now { color: var(--sanguine); }
+  .dot { display: inline-block; width: .55em; height: .55em; border-radius: 50%; background: currentColor; margin-right: .45em; vertical-align: .08em; animation: pulse 2s ease-in-out infinite; }
+  .btn .dot { margin-right: .5em; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
 </style>
 </head>
 <body>
@@ -192,8 +198,8 @@
     <p class="lede"><strong>Just enough plan, just enough company, just enough guidance.</strong> For people making something alongside everything else they do. Underpainting is the smallest set of things that gets you unblocked and helps you see it through: a weekly work session, a plan you can see, 1:1 help from someone who knows what goes underneath, and people doing the same.</p>
     <p class="bridge">An underpainting is never meant to be seen. It’s stick figures and simple shapes: the least a painter needs to lay down to get the finished picture right. Then it disappears under the work. That’s what Underpainting does for your project.</p>
     <div class="btns">
-      <a class="btn primary" href="#work-session">Join a free work session</a>
-      <a class="btn ghost" href="#membership">See membership</a>
+      <a class="btn primary" id="ws-cta" href="#work-session">Join a free work session</a>
+      <a class="btn ghost" id="ws-cta2" href="#membership">See membership</a>
     </div>
   </section>
 
@@ -246,6 +252,7 @@
         <h3>A weekly work session · free</h3>
         <p>Once a week we meet on video, say what we’re each working on, then work quietly side by side for an hour, like artists sharing a studio. (Some people call this body doubling.) Bring any task, from your project to email or paperwork. It’s free with sign-up.</p>
         <!-- TODO: replace mailto with the real sign-up link once B10 has one. -->
+        <p id="ws-live" hidden><strong class="live-now"><span class="dot" aria-hidden="true"></span>Happening now.</strong> <a href="https://members.underpainting.club">Come in and join us</a>; we’ll let you in at the door.</p>
         <p><a href="mailto:hello@underpainting.club?subject=Sign%20me%20up%20for%20the%20weekly%20work%20session">Sign up for the work session</a> <span class="muted">· Wednesdays, 10–11:30am Pacific (1–2:30pm Eastern)</span></p>
       </div>
       <div class="card">
@@ -378,5 +385,24 @@
   </div>
 </footer>
 
+<script>
+// While the Wednesday work session is running (10-11:30am Pacific, from 10 minutes early), the main button says so and goes straight to the room.
+(function () {
+  try {
+    var p = {};
+    new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hourCycle: 'h23', weekday: 'short', hour: 'numeric', minute: 'numeric' })
+      .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+    var m = +p.hour * 60 + +p.minute;
+    if (p.weekday !== 'Wed' || m < 590 || m >= 690) return;
+    var room = 'https://members.underpainting.club', cta = document.getElementById('ws-cta');
+    cta.href = room;
+    cta.innerHTML = '<span class="dot" aria-hidden="true"></span>Happening now · Join the work session';
+    document.getElementById('ws-live').hidden = false;
+    var plan = document.getElementById('ws-cta2');
+    plan.href = 'https://plan.underpainting.club';
+    plan.textContent = 'Members: open your plan';
+  } catch (e) {}
+})();
+</script>
 </body>
 </html>
