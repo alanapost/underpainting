@@ -8,47 +8,46 @@
 <link rel="stylesheet" href="/members/style.css">
 </head>
 <body>
-<header class="top">
-  <div class="wrap">
-    <a class="home" href="/">Underpainting</a>
-  </div>
-  <nav class="wrap quick" aria-label="Quick links">
-    <a href="https://chat.underpainting.club">Chat</a>
-    <a href="/members/work-session/">Work session</a>
-    <a href="/members/one-on-one/">Your 1:1</a>
-    <a href="https://plan.underpainting.club">Your plan</a>
-    <a href="https://billing.stripe.com/p/login/3cIfZga4H9mp8Fwaj28Ra00">Membership</a>
-    <a href="mailto:hello@underpainting.club?subject=Member%20question">Contact</a>
-  </nav>
-</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="wc" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="3" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="38" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="4" result="b"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="2" seed="4" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.9 1.35" result="g"/>
+      <feComposite in="b" in2="g" operator="in"/>
+    </filter>
+    <filter id="pencil" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" seed="2" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.5"/>
+    </filter>
+  </defs>
+</svg>
+<header><div class="wrap"><a class="wordmark" href="/members/">Underpainting</a><a class="back" href="/members/">All member links</a></div></header>
 <main class="wrap">
-  <section class="hero">
+  <div class="intro">
     <h1>Your 1:1</h1>
-    <p class="tagline">Two 45-minute sessions a month, on your plan and what’s next.</p>
-    <div class="next">
-      <h3>Join your session</h3>
-      <p class="muted">Your booking email has the time. Join a minute or two early.</p>
-      <div class="btns">
-        <a class="btn primary" href="https://underpainting.daily.co/one-to-one" onclick="return joinRoom(this.href, 'oo-stage')">Join your 1:1</a>
-        <a class="btn ghost" href="https://plan.underpainting.club">Open your plan</a>
-      </div>
-      <div class="stage" id="oo-stage"></div>
-      <p class="sub">You’ll wait a moment at the door until we let you in. On a phone, <a href="https://underpainting.daily.co/one-to-one" target="_blank" rel="noopener">open it in a full window</a>.</p>
+    <p>Two 45-minute sessions a month, on your plan and what comes next.</p>
+  </div>
+  <section>
+    <p class="eyebrow">Session starting?</p>
+    <div class="actions">
+      <a class="btn" href="https://underpainting.daily.co/one-to-one" onclick="return joinRoom(this.href, 'oo-stage')">Join your 1:1</a>
+      <a href="https://plan.underpainting.club">Open your plan</a>
     </div>
+    <div class="stage" id="oo-stage"></div>
+    <p class="note">Your booking email has the time. You’ll wait at the door for a moment until we let you in.</p>
   </section>
   <section id="book">
     <h2>Book a session</h2>
     <div id="tymeslot-booking" data-username="paint/one-on-one" data-locale="en" data-max-width="900"></div>
-    <p class="sub">Calendar not showing? <a href="https://book.underpainting.club/paint/one-on-one">Book on the booking page</a> instead.</p>
+    <p class="note">Calendar not showing? <a href="https://book.underpainting.club/paint/one-on-one">Book on the booking page</a>.</p>
   </section>
 </main>
-<footer>
-  <div class="wrap">
-    <p><a href="/members/">Back to the members page</a> <span class="muted">· Questions? <a href="mailto:hello@underpainting.club?subject=Member%20question">hello@underpainting.club</a></span></p>
-  </div>
-</footer>
+<footer><div class="wrap">Questions? <a href="mailto:hello@underpainting.club?subject=Member%20question">hello@underpainting.club</a></div></footer>
 <script src="/members/vendor/daily-js-0.94.0.js"></script>
-<script src="/members/members.js"></script>
 <script src="https://book.underpainting.club/embed.js" async></script>
+<script src="/members/members.js"></script>
 </body>
 </html>

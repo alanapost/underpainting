@@ -20,20 +20,17 @@
       end = start + LEN_MIN * 6e4;
       if (end > now) break;
     }
-    var when = document.getElementById('ws-when'), note = document.getElementById('ws-note');
+    var when = document.getElementById('ws-when');
     if (!when) return;
+    var t = function (x, o) { return new Date(x).toLocaleTimeString([], Object.assign({ hour: 'numeric', minute: '2-digit' }, o || {})); };
     if (now >= start - EARLY_MIN * 6e4 && now < end) {
-      when.innerHTML = '<span class="live"><span class="dot" aria-hidden="true"></span>Happening now</span>';
+      when.innerHTML = '<span class="live"><span class="dot" aria-hidden="true"></span>Happening now, until ' + t(end) + '</span>';
       var join = document.getElementById('ws-join'), plan = document.getElementById('ws-plan'), cal = document.getElementById('ws-cal');
-      if (join) join.innerHTML = '<span class="dot" aria-hidden="true"></span>Join now';
+      if (join) join.textContent = 'Join now';
       if (plan) plan.hidden = false;
       if (cal) cal.hidden = true;
-      note.textContent = 'Come in any time until ' + new Date(end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.';
     } else {
-      var d = new Date(start);
-      when.textContent = 'Next: ' + d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) + ', ' +
-        d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '\u2013' + new Date(end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-      note.textContent = 'Shown in your time zone.';
+      when.textContent = new Date(start).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }) + ', ' + t(start) + '\u2013' + t(end, { timeZoneName: 'short' });
     }
   } catch (e) { /* keep the plain-text time */ }
 })();
@@ -44,7 +41,7 @@ function joinRoom(url, stageId) {
   if (!window.Daily || !stage) { window.location.href = url; return false; }
   if (stage.dataset.on) { stage.scrollIntoView({ behavior: 'smooth' }); return false; }
   stage.dataset.on = '1';
-  var call = window.Daily.createFrame(stage, { showLeaveButton: true, showFullscreenButton: true, iframeStyle: { width: '100%', height: 'min(75vh, 46rem)', border: '0' } });
+  var call = window.Daily.createFrame(stage, { showLeaveButton: true, showFullscreenButton: true, iframeStyle: { width: '100%', height: 'min(75vh, 40rem)', border: '0' } });
   call.on('left-meeting', function () { call.destroy(); stage.innerHTML = ''; delete stage.dataset.on; });
   call.join({ url: url });
   stage.scrollIntoView({ behavior: 'smooth' });

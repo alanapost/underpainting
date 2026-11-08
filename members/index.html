@@ -5,75 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Members · Underpainting</title>
-<!-- No external requests: no fonts, analytics or cookies. The schedule is worked out in your browser. -->
 <link rel="stylesheet" href="/members/style.css">
 </head>
 <body>
-<header class="top">
-  <div class="wrap">
-    <a class="home" href="/">Underpainting</a>
-  </div>
-  <nav class="wrap quick" aria-label="Quick links">
-    <a href="https://chat.underpainting.club">Chat</a>
-    <a href="/members/work-session/">Work session</a>
-    <a href="/members/one-on-one/">Your 1:1</a>
-    <a href="https://plan.underpainting.club">Your plan</a>
-    <a href="https://billing.stripe.com/p/login/3cIfZga4H9mp8Fwaj28Ra00">Membership</a>
-    <a href="mailto:hello@underpainting.club?subject=Member%20question">Contact</a>
-  </nav>
-</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="wc" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.03" numOctaves="3" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="38" result="d"/>
+      <feGaussianBlur in="d" stdDeviation="4" result="b"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="2" seed="4" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -0.9 1.35" result="g"/>
+      <feComposite in="b" in2="g" operator="in"/>
+    </filter>
+    <filter id="pencil" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.08" numOctaves="2" seed="2" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.5"/>
+    </filter>
+  </defs>
+</svg>
+<header><div class="wrap"><a class="wordmark" href="/members/">Underpainting</a></div></header>
 <main class="wrap">
-  <section class="hero">
+  <div class="intro">
     <h1>Welcome back</h1>
-    <p class="tagline">This is where the work gets done.</p>
-
-    <div class="next" aria-live="polite">
-      <h3>Weekly work session</h3>
-      <p class="when" id="ws-when">Wednesdays, 10–11:30am Pacific (1–2:30pm Eastern)</p>
-      <p class="muted" id="ws-note">Say what you’re working on, then work side by side for an hour.</p>
-      <div class="btns">
-        <a class="btn primary" id="ws-join" href="/members/work-session/">Join the work session</a>
-        <a class="btn ghost" id="ws-cal" href="/members/work-session.ics" download>Add to my calendar</a>
-        <a class="btn ghost" id="ws-plan" href="https://plan.underpainting.club" hidden>Open your plan</a>
-      </div>
+    <p>This is where the work gets done.</p>
+    <div class="vig" aria-hidden="true"><div class="vig" aria-hidden="true"><svg viewBox="0 0 200 90" focusable="false"><path class="wc ve" d="M68 40 C64 22 84 10 100 13 C120 9 136 24 132 39 C136 52 118 60 101 55 C86 61 66 54 68 40Z"/><path class="wc um" d="M96 74 L134 74 L130 80 L94 80Z"/><g class="sketch"><path d="M70 40 C66 24 84 12 100 14 C118 10 134 24 130 38 C134 50 118 58 102 54 C88 60 70 54 70 40" class="faint"/><path d="M100 78 C99 66 101 55 99 44"/><path d="M99 56 C92 51 86 48 80 44"/><path d="M100 50 C108 45 113 42 119 37"/><line x1="104.9" y1="72.7" x2="110.6" y2="76.9"/><line x1="110.4" y1="73.0" x2="117.2" y2="78.2"/><line x1="114.9" y1="72.6" x2="121.9" y2="77.9"/><line x1="119.4" y1="72.3" x2="126.8" y2="77.9"/><line x1="123.3" y1="71.5" x2="131.2" y2="77.4"/><path d="M24 78.5 C70 77.8 130 79.4 176 78.2" class="g"/></g></svg></div></div>
+  </div>
+  <section>
+    <p class="eyebrow">Weekly work session</p>
+    <p class="when" id="ws-when">Wednesdays, 10–11:30am Pacific (1–2:30pm Eastern)</p>
+    <div class="actions">
+      <a class="btn" id="ws-join" href="/members/work-session/">Join the work session</a>
+      <a id="ws-cal" href="/members/work-session.ics" download>Add to calendar</a>
+      <a id="ws-plan" href="https://plan.underpainting.club" hidden>Open your plan</a>
     </div>
   </section>
-
   <section>
-    <div class="grid">
-      <div class="card">
-        <h3>Your 1:1</h3>
-        <p class="tag">Community + 1:1 members</p>
-        <p>Two 45-minute sessions a month. Your booking email has the time.</p>
-        <div class="btns">
-          <a class="btn primary" href="/members/one-on-one/">Join your 1:1</a>
-          <a class="btn ghost" href="/members/one-on-one/#book">Book a session</a>
-        </div>
-      </div>
-      <div class="card">
-        <h3>Your shared plan</h3>
-        <p class="tag">Community + 1:1 members</p>
-        <p>What you’re doing now, what’s next, what can wait, and what’s done.</p>
-        <div class="btns"><a class="btn ghost" href="https://plan.underpainting.club">Open your plan</a></div>
-      </div>
-      <div class="card">
-        <h3>Community chat</h3>
-        <p>Share what you’re working on, ask a question, show what you made.</p>
-        <div class="btns"><a class="btn ghost" href="https://chat.underpainting.club">Open chat</a></div>
-      </div>
-      <div class="card">
-        <h3>Get in touch</h3>
-        <p>Stuck, running late, or need something? Email us and we’ll reply within two working days.</p>
-        <div class="btns"><a class="btn ghost" href="mailto:hello@underpainting.club?subject=Member%20question">Email hello@underpainting.club</a></div>
-      </div>
-    </div>
+    <ul class="links">
+      <li><a href="/members/one-on-one/"><span>Your 1:1</span><span>Join or book a session</span></a></li>
+      <li><a href="https://plan.underpainting.club"><span>Your plan</span><span>Now, next, later, done</span></a></li>
+      <li><a href="https://chat.underpainting.club"><span>Chat</span><span>Ask, share, show what you made</span></a></li>
+      <li><a href="https://billing.stripe.com/p/login/3cIfZga4H9mp8Fwaj28Ra00"><span>Membership</span><span>Card, plan or cancel</span></a></li>
+    </ul>
   </section>
 </main>
-<footer>
-  <div class="wrap">
-    <p><a href="https://billing.stripe.com/p/login/3cIfZga4H9mp8Fwaj28Ra00">Manage your membership</a> <span class="muted">· update your card, change plan or cancel. Log in with the email you paid with.</span></p>
-  </div>
-</footer>
+<footer><div class="wrap">Questions? <a href="mailto:hello@underpainting.club?subject=Member%20question">hello@underpainting.club</a></div></footer>
 <script src="/members/members.js"></script>
 </body>
 </html>
