@@ -7,6 +7,8 @@ process.env.OIDC_CLIENT_SECRET = "secret";
 process.env.SESSION_SECRET = "x".repeat(40);
 process.env.ROOM_WORK_SESSION = "https://example.daily.co/ws-test";
 process.env.ROOM_ONE_TO_ONE = "https://example.daily.co/oo-test";
+process.env.DAILY_API_KEY = "dk";
+const dailyCalls = [];
 
 let groups = ["one-on-one"];
 globalThis.fetch = (input) => {
@@ -16,6 +18,13 @@ globalThis.fetch = (input) => {
     return json({ authorization_endpoint: "https://idp.test/authorize", token_endpoint: "https://idp.test/token", userinfo_endpoint: "https://idp.test/userinfo", end_session_endpoint: "https://idp.test/api/oidc/end-session" });
   }
   if (u === "https://idp.test/token") return json({ access_token: "at" });
+  if (u.startsWith("https://api.daily.co/v1/")) {
+    dailyCalls.push(u);
+    if (u.endsWith("/rooms/ws-test")) return Promise.resolve(new Response("{}", { status: 404 }));
+    if (u.includes("/rooms/")) return json({ name: "oo-test" });
+    if (u.endsWith("/rooms")) return json({ name: "ws-test" });
+    if (u.endsWith("/meeting-tokens")) return json({ token: "tok123" });
+  }
   if (u === "https://idp.test/userinfo") return json({ sub: "u1", email: "m@test", given_name: "Sam", groups });
   return Promise.reject(new Error("unexpected fetch " + u));
 };
@@ -82,4 +91,16 @@ test("sign out clears the session and goes to Pocket ID", async () => {
   const r = await handler(new Request("https://members.test/logout"));
   assert(r.headers.get("location").startsWith("https://idp.test/api/oidc/end-session"), "end session");
   assert(r.headers.getSetCookie().some((c) => c.startsWith("up_session=;")), "cookie cleared");
+});
+
+test("admin gets host links, creating a missing room; others are redirected", async () => {
+  groups = ["admin"];
+  const c = await signIn();
+  const r = await (await handler(new Request("https://members.test/host", { headers: { cookie: c } }))).text();
+  assert(r.includes("ws-test?t=tok123") && r.includes("oo-test?t=tok123"), "host links");
+  assert(dailyCalls.some((u) => u.endsWith("/rooms")), "missing room created");
+  groups = ["one-on-one"];
+  const c2 = await signIn();
+  const r2 = await handler(new Request("https://members.test/host", { headers: { cookie: c2 } }));
+  assert(r2.status === 302, "non-admin redirected");
 });
