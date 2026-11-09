@@ -29,7 +29,7 @@ globalThis.fetch = (input) => {
   return Promise.reject(new Error("unexpected fetch " + u));
 };
 
-const { handler } = await import("./server.mjs");
+const { handler, safeNext } = await import("./server.mjs");
 const assert = (c, m) => { if (!c) throw new Error(m); };
 const cookieOf = (r, name) => r.headers.getSetCookie().find((c) => c.startsWith(name + "=")).split(";")[0];
 
@@ -103,4 +103,9 @@ test("admin gets host links, creating a missing room; others are redirected", as
   const c2 = await signIn();
   const r2 = await handler(new Request("https://members.test/host", { headers: { cookie: c2 } }));
   assert(r2.status === 302, "non-admin redirected");
+});
+
+test("sign-in never redirects off-site", () => {
+  for (const bad of ["//evil.com", "/\\evil.com", "/\t/evil.com", "https://evil.com", "javascript:alert(1)", "\\\\evil.com"]) assert(safeNext(bad) === "/", bad);
+  assert(safeNext("/one-on-one?x=1") === "/one-on-one?x=1", "same-site kept");
 });

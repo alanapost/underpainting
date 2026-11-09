@@ -66,6 +66,14 @@ const discovery = () =>
 const randomStr = () => b64u(crypto.getRandomValues(new Uint8Array(32)));
 const sha256 = async (s) => b64u(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s))));
 
+// Only same-site paths: "//evil.com", "/\\evil.com" and tab tricks all resolve off-site and fall back to "/".
+function safeNext(next) {
+  try {
+    const u = new URL(next, "https://members.invalid");
+    return u.origin === "https://members.invalid" && next.startsWith("/") ? u.pathname + u.search : "/";
+  } catch { return "/"; }
+}
+
 async function login(req) {
   const d = await discovery();
   const state = randomStr(), verifier = randomStr();
@@ -77,7 +85,7 @@ async function login(req) {
   }).toString();
   return new Response(null, {
     status: 302,
-    headers: { location: u.toString(), "set-cookie": setCookie("up_login", await seal({ state, verifier, next: next.startsWith("/") ? next : "/" }), 600) },
+    headers: { location: u.toString(), "set-cookie": setCookie("up_login", await seal({ state, verifier, next: safeNext(next) }), 600) },
   });
 }
 
@@ -288,6 +296,7 @@ async function serveStatic(path) {
 }
 
 // ---------- router ----------
+export { safeNext };
 export async function handler(req) {
   const { pathname } = new URL(req.url);
   if (pathname === "/healthz") return new Response("ok");
