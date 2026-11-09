@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 //   OIDC_CLIENT_ID, OIDC_CLIENT_SECRET   from the Pocket ID app
 //   SESSION_SECRET      32+ random characters
 //   ROOM_WORK_SESSION, ROOM_ONE_TO_ONE   Daily room URLs (kept out of the public repo)
+//   DAILY_API_KEY       lets admins get host links at /host (rooms are created there if missing)
 //   GROUP_COMMUNITY (default "community"), GROUP_ONE_ON_ONE (default "one-on-one"), GROUP_ADMIN (default "admin")
 
 const env = (k, d) => {
@@ -184,6 +185,7 @@ function home(s) {
     <h2>Session</h2>
 ${sessionBlock(ws)}
 ${one ? `    <p class="note"><a href="/one-on-one">Your 1:1</a>: join or book a session.</p>` : ""}
+${isAdmin(s) ? `    <p class="note"><a href="/host">Host links</a> (only you see this).</p>` : ""}
   </section>
 
   <section>
@@ -224,6 +226,46 @@ function oneOnOne(s) {
   return page("Your 1:1", body, s, 200, `<script src="https://book.underpainting.club/embed.js" async></script>\n`);
 }
 
+// ---------- host links for admins (Daily owner tokens, made fresh each visit) ----------
+const isAdmin = (s) => s.groups.includes(G_ADMIN);
+const roomName = (url) => new URL(url).pathname.replace(/^\//, "");
+
+async function daily(path, body) {
+  const r = await fetch(`https://api.daily.co/v1${path}`, {
+    method: body ? "POST" : "GET",
+    headers: { authorization: `Bearer ${env("DAILY_API_KEY")}`, "content-type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+}
+
+async function hostLink(roomUrl) {
+  const name = roomName(roomUrl);
+  const room = await daily(`/rooms/${name}`);
+  if (room.status === 404) {
+    const made = await daily("/rooms", { name, privacy: "private", properties: { enable_knocking: true, enable_prejoin_ui: true } });
+    if (!made.ok) throw new Error(`Couldn't create room ${name} (${made.status})`);
+  } else if (!room.ok) throw new Error(`Couldn't check room ${name} (${room.status})`);
+  const tok = await daily("/meeting-tokens", { properties: { room_name: name, is_owner: true, exp: Math.floor(Date.now() / 1000) + 6 * 3600 } });
+  if (!tok.ok || !tok.data.token) throw new Error(`Couldn't make a host link for ${name} (${tok.status})`);
+  return `${roomUrl}?t=${tok.data.token}`;
+}
+
+async function host(s) {
+  let body;
+  try {
+    const [ws, oo] = await Promise.all([hostLink(env("ROOM_WORK_SESSION")), hostLink(env("ROOM_ONE_TO_ONE"))]);
+    body = `  <div class="intro"><h1>Host</h1><p>Host links let you admit people at the door. They last 6 hours; reload this page for fresh ones.</p></div>
+  <section><div class="actions">
+    <a class="btn" href="${esc(ws)}" target="_blank" rel="noopener">Host the work session</a>
+    <a href="${esc(oo)}" target="_blank" rel="noopener">Host a 1:1</a>
+  </div></section>`;
+  } catch (e) {
+    body = `  <div class="intro"><h1>Host</h1><p>${esc(String(e.message ?? e))}. Check DAILY_API_KEY in the app's secrets.</p></div>`;
+  }
+  return page("Host", body, s);
+}
+
 function notMember(s) {
   return page("Membership", `  <div class="intro"><h1>No active membership</h1>
     <p>You’re signed in as ${esc(s.email)}, but this account isn’t linked to a membership yet.</p></div>
@@ -260,6 +302,7 @@ export async function handler(req) {
   if (!isMember(s)) return notMember(s);
   if (pathname === "/" || pathname === "/work-session") return home(s);
   if (pathname === "/one-on-one") return hasOne(s) ? oneOnOne(s) : redirect("/");
+  if (pathname === "/host") return isAdmin(s) ? host(s) : redirect("/");
   return page("Not found", `<div class="intro"><h1>Page not found</h1><p><a href="/">Back to your page</a></p></div>`, s, 404);
 }
 
