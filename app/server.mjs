@@ -1,5 +1,9 @@
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
+
 // Underpainting members app: signs members in through Pocket ID and serves their page.
-// Runs on Deno (Deno Deploy, or `deno run` anywhere). No database. Settings come from env vars:
+// Plain Node 20+ with no dependencies: `node app/server.mjs` (PORT, default 8000). No database. Settings come from env vars:
 //   BASE_URL            https://members.underpainting.club
 //   OIDC_ISSUER         https://login.underpainting.club
 //   OIDC_CLIENT_ID, OIDC_CLIENT_SECRET   from the Pocket ID app
@@ -7,8 +11,8 @@
 //   ROOM_WORK_SESSION, ROOM_ONE_TO_ONE   Daily room URLs (kept out of the public repo)
 //   GROUP_COMMUNITY (default "community"), GROUP_ONE_ON_ONE (default "one-on-one"), GROUP_ADMIN (default "admin")
 
-const env = (k: string, d?: string) => {
-  const v = Deno.env.get(k) ?? d;
+const env = (k, d) => {
+  const v = process.env[k] ?? d;
   if (v === undefined) throw new Error(`Missing env var ${k}`);
   return v;
 };
@@ -21,49 +25,47 @@ const ROOT = new URL("../", import.meta.url); // repo root
 const COOKIE = "up_session";
 const SESSION_DAYS = 14;
 
-type Session = { sub: string; email: string; name: string; groups: string[]; exp: number };
 
 // ---------- signed cookies (HMAC-SHA256) ----------
 const enc = new TextEncoder();
-let keyP: Promise<CryptoKey> | undefined;
+let keyP;
 const key = () =>
   keyP ??= crypto.subtle.importKey("raw", enc.encode(env("SESSION_SECRET")), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
-const b64u = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const unb64u = (s: string) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+const b64u = (b) => btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const unb64u = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 
-async function seal(data: unknown): Promise<string> {
+async function seal(data) {
   const body = b64u(enc.encode(JSON.stringify(data)));
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", await key(), enc.encode(body)));
   return `${body}.${b64u(sig)}`;
 }
-async function unseal<T>(token: string | undefined): Promise<T | null> {
+async function unseal(token) {
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
   try {
     const ok = await crypto.subtle.verify("HMAC", await key(), unb64u(sig), enc.encode(body));
-    return ok ? JSON.parse(new TextDecoder().decode(unb64u(body))) as T : null;
+    return ok ? JSON.parse(new TextDecoder().decode(unb64u(body))) : null;
   } catch {
     return null;
   }
 }
-const getCookie = (req: Request, name: string) =>
+const getCookie = (req, name) =>
   req.headers.get("cookie")?.split(/;\s*/).find((c) => c.startsWith(name + "="))?.slice(name.length + 1);
-const setCookie = (name: string, value: string, maxAge: number) =>
+const setCookie = (name, value, maxAge) =>
   `${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 
 // ---------- OIDC (authorization code + PKCE, confidential client) ----------
-type Discovery = { authorization_endpoint: string; token_endpoint: string; userinfo_endpoint: string; end_session_endpoint?: string };
-let discP: Promise<Discovery> | undefined;
+let discP;
 const discovery = () =>
   discP ??= fetch(`${ISSUER}/.well-known/openid-configuration`).then((r) => {
     if (!r.ok) { discP = undefined; throw new Error(`Discovery failed: ${r.status}`); }
     return r.json();
   });
 const randomStr = () => b64u(crypto.getRandomValues(new Uint8Array(32)));
-const sha256 = async (s: string) => b64u(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s))));
+const sha256 = async (s) => b64u(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s))));
 
-async function login(req: Request): Promise<Response> {
+async function login(req) {
   const d = await discovery();
   const state = randomStr(), verifier = randomStr();
   const next = new URL(req.url).searchParams.get("next") ?? "/";
@@ -78,22 +80,22 @@ async function login(req: Request): Promise<Response> {
   });
 }
 
-async function callback(req: Request): Promise<Response> {
+async function callback(req) {
   const url = new URL(req.url);
-  const pending = await unseal<{ state: string; verifier: string; next: string }>(getCookie(req, "up_login"));
+  const pending = await unseal(getCookie(req, "up_login"));
   if (!pending || url.searchParams.get("state") !== pending.state || !url.searchParams.get("code")) return redirect("/login");
   const d = await discovery();
   const tok = await fetch(d.token_endpoint, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded", authorization: "Basic " + btoa(`${env("OIDC_CLIENT_ID")}:${env("OIDC_CLIENT_SECRET")}`) },
-    body: new URLSearchParams({ grant_type: "authorization_code", code: url.searchParams.get("code")!, redirect_uri: `${BASE_URL}/callback`, code_verifier: pending.verifier }),
+    body: new URLSearchParams({ grant_type: "authorization_code", code: url.searchParams.get("code"), redirect_uri: `${BASE_URL}/callback`, code_verifier: pending.verifier }),
   });
   if (!tok.ok) return page("Sign-in problem", `<p>Sign-in didn't finish (${tok.status}). <a href="/login">Try again</a>.</p>`, null, 502);
   const { access_token } = await tok.json();
   const ui = await fetch(d.userinfo_endpoint, { headers: { authorization: `Bearer ${access_token}` } });
   if (!ui.ok) return page("Sign-in problem", `<p>Couldn't read your account (${ui.status}). <a href="/login">Try again</a>.</p>`, null, 502);
   const info = await ui.json();
-  const s: Session = {
+  const s = {
     sub: info.sub, email: info.email ?? "", name: info.given_name ?? info.name ?? "",
     groups: Array.isArray(info.groups) ? info.groups : [], exp: Date.now() + SESSION_DAYS * 864e5,
   };
@@ -103,7 +105,7 @@ async function callback(req: Request): Promise<Response> {
   return new Response(null, { status: 302, headers: h });
 }
 
-async function logout(): Promise<Response> {
+async function logout() {
   let dest = "https://underpainting.club/";
   try {
     const d = await discovery();
@@ -118,10 +120,10 @@ async function logout(): Promise<Response> {
 }
 
 // ---------- pages ----------
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-const redirect = (to: string) => new Response(null, { status: 302, headers: { location: to } });
-const isMember = (s: Session) => s.groups.some((g) => [G_COMMUNITY, G_ONE, G_ADMIN].includes(g));
-const hasOne = (s: Session) => s.groups.some((g) => [G_ONE, G_ADMIN].includes(g));
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const redirect = (to) => new Response(null, { status: 302, headers: { location: to } });
+const isMember = (s) => s.groups.some((g) => [G_COMMUNITY, G_ONE, G_ADMIN].includes(g));
+const hasOne = (s) => s.groups.some((g) => [G_ONE, G_ADMIN].includes(g));
 
 const LINKS = {
   plan: "https://plan.underpainting.club",
@@ -131,7 +133,7 @@ const LINKS = {
   contact: "mailto:hello@underpainting.club?subject=Member%20question",
 };
 
-function page(title: string, body: string, s: Session | null, status = 200, scripts = ""): Response {
+function page(title, body, s, status = 200, scripts = "") {
   const right = s ? `<a class="back" href="/logout">Sign out</a>` : "";
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -149,7 +151,7 @@ ${scripts}</body></html>`;
   return new Response(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
 
-function sessionBlock(room: string): string {
+function sessionBlock(room) {
   return `    <p class="when" id="ws-when">Wednesdays, 10–11:30am Pacific (1–2:30pm Eastern)</p>
     <div class="actions">
       <a class="btn" id="ws-join" href="${esc(room)}" onclick="return joinRoom(this.href, 'ws-stage')">Join the work session</a>
@@ -159,7 +161,7 @@ function sessionBlock(room: string): string {
     <div class="stage" id="ws-stage"></div>`;
 }
 
-function home(s: Session): Response {
+function home(s) {
   const one = hasOne(s);
   const ws = env("ROOM_WORK_SESSION");
   const hello = s.name ? `Welcome back, ${esc(s.name)}` : "Welcome back";
@@ -199,7 +201,7 @@ ${one ? `      <li><a href="${LINKS.plan}/user/settings/general"><span>Plan</spa
     `<script>if (document.body.dataset.live === '1') joinRoom(${JSON.stringify(ws)}, 'ws-stage', true);</script>\n`);
 }
 
-function oneOnOne(s: Session): Response {
+function oneOnOne(s) {
   const room = env("ROOM_ONE_TO_ONE");
   const body = `  <div class="intro">
     <h1>Your 1:1</h1>
@@ -222,7 +224,7 @@ function oneOnOne(s: Session): Response {
   return page("Your 1:1", body, s, 200, `<script src="https://book.underpainting.club/embed.js" async></script>\n`);
 }
 
-function notMember(s: Session): Response {
+function notMember(s) {
   return page("Membership", `  <div class="intro"><h1>No active membership</h1>
     <p>You’re signed in as ${esc(s.email)}, but this account isn’t linked to a membership yet.</p></div>
   <section><div class="actions"><a class="btn" href="https://underpainting.club/#membership">See membership</a>
@@ -230,21 +232,21 @@ function notMember(s: Session): Response {
 }
 
 // ---------- static files from the repo (styles, scripts, fonts, brand) ----------
-const TYPES: Record<string, string> = { css: "text/css", js: "text/javascript", woff2: "font/woff2", svg: "image/svg+xml", png: "image/png", ico: "image/x-icon", ics: "text/calendar", txt: "text/plain" };
+const TYPES = { css: "text/css", js: "text/javascript", woff2: "font/woff2", svg: "image/svg+xml", png: "image/png", ico: "image/x-icon", ics: "text/calendar", txt: "text/plain" };
 const STATIC = /^\/(members\/(style\.css|members\.js|work-session\.ics|vendor\/[\w.-]+)|fonts\/[\w.-]+|brand\/[\w.-]+\.(svg|png|ico))$/;
 
-async function serveStatic(path: string): Promise<Response | null> {
+async function serveStatic(path) {
   if (!STATIC.test(path) || path.includes("..")) return null;
   try {
-    const data = await Deno.readFile(new URL("." + path, ROOT));
-    return new Response(data, { headers: { "content-type": TYPES[path.split(".").pop()!] ?? "application/octet-stream", "cache-control": "public, max-age=3600" } });
+    const data = await readFile(new URL("." + path, ROOT));
+    return new Response(data, { headers: { "content-type": TYPES[path.split(".").pop()] ?? "application/octet-stream", "cache-control": "public, max-age=3600" } });
   } catch {
     return null;
   }
 }
 
 // ---------- router ----------
-export async function handler(req: Request): Promise<Response> {
+export async function handler(req) {
   const { pathname } = new URL(req.url);
   if (pathname === "/healthz") return new Response("ok");
   if (pathname === "/login") return login(req);
@@ -253,7 +255,7 @@ export async function handler(req: Request): Promise<Response> {
   const file = await serveStatic(pathname);
   if (file) return file;
 
-  const s = await unseal<Session>(getCookie(req, COOKIE));
+  const s = await unseal(getCookie(req, COOKIE));
   if (!s || s.exp < Date.now()) return redirect(`/login?next=${encodeURIComponent(pathname)}`);
   if (!isMember(s)) return notMember(s);
   if (pathname === "/" || pathname === "/work-session") return home(s);
@@ -261,4 +263,22 @@ export async function handler(req: Request): Promise<Response> {
   return page("Not found", `<div class="intro"><h1>Page not found</h1><p><a href="/">Back to your page</a></p></div>`, s, 404);
 }
 
-if (import.meta.main) Deno.serve(handler);
+// ---------- Node HTTP adapter ----------
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const port = Number(process.env.PORT ?? 8000);
+  createServer(async (nreq, nres) => {
+    try {
+      const req = new Request(new URL(nreq.url, BASE_URL), { method: nreq.method, headers: nreq.headers });
+      const res = await handler(req);
+      const headers = {};
+      res.headers.forEach((v, k) => { if (k !== "set-cookie") headers[k] = v; });
+      const cookies = res.headers.getSetCookie();
+      if (cookies.length) headers["set-cookie"] = cookies;
+      nres.writeHead(res.status, headers);
+      nres.end(Buffer.from(await res.arrayBuffer()));
+    } catch (e) {
+      console.error(e);
+      nres.writeHead(500, { "content-type": "text/plain" }).end("Something went wrong.");
+    }
+  }).listen(port, () => console.log(`members app on :${port}`));
+}
