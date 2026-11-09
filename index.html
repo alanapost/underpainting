@@ -166,17 +166,6 @@
   .how .parts { display: grid; gap: 2rem; margin-top: 2.5rem; }
   .how .part h3 { margin: 0 0 .35rem; }
   .how .part p { margin: .35rem 0 0; }
-  .plan { margin: 2.5rem 0 0; }
-  .plan svg { display: block; width: 100%; height: auto; cursor: pointer; touch-action: pan-y; -webkit-tap-highlight-color: transparent; }
-  .plan svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-  .plan .s { fill: none; stroke: var(--sanguine); stroke-width: 1.4; stroke-linecap: round; filter: url(#pencil); }
-  .plan .s.faint { opacity: .45; stroke-width: 1; }
-  .plan .hatch line, .plan line.s { stroke-width: 1; opacity: .7; }
-  .plan .w { filter: url(#wc); opacity: .28; stroke: none; }
-  .plan .w.um { fill: var(--umber); } .plan .w.oc { fill: var(--ochre); } .plan .w.si { fill: var(--sienna-wash); } .plan .w.ve { fill: var(--verdaccio); }
-  .plan .rock .w.oc { opacity: .4; } .plan .rock .w.um { opacity: .35; }
-  .plan .labels text { font: italic 500 20px 'Cormorant Garamond', Georgia, serif; fill: var(--muted); text-anchor: middle; }
-  .plan figcaption { color: var(--muted); font-size: 16px; margin-top: .5rem; }
 </style>
 </head>
 <body>
@@ -251,26 +240,6 @@
         <div class="slice"><span>Your plan: priorities and next steps</span></div>
       </div>
       <figcaption>Each layer builds on the one below: a clear plan, a rhythm that keeps you going, and 1:1 help filling in what you don’t know yet.</figcaption>
-    </figure>
-    <figure class="plan">
-      <svg viewBox="0 0 640 210" role="button" tabindex="0" aria-label="A sketch of a stone in one of four grooves: later, next, now, done. Press to slide the stone to the next groove." aria-describedby="plan-help">
-        <g class="board"></g>
-        <g class="stone">
-          <g class="rock">
-            <path class="w oc" d="M-34 -6 C-36 -22 -14 -30 4 -28 C22 -27 37 -16 35 -2 C34 13 18 21 0 21 C-20 21 -33 10 -34 -6Z"/>
-            <path class="w um" d="M6 18 C22 16 33 8 34 -4 C30 6 18 12 2 13 C-8 14 -18 12 -26 8 C-18 16 -6 19 6 18Z"/>
-            <g class="s hatch"></g>
-            <path class="s" d="M-34 -6 C-36 -22 -14 -30 4 -28 C22 -27 37 -16 35 -2 C34 13 18 21 0 21 C-20 21 -33 10 -34 -6"/>
-            <path class="s faint" d="M-31 -9 C-30 -24 -8 -30 8 -27 C26 -24 38 -12 33 2"/>
-            <path class="s faint" d="M-18 -14 C-10 -19 0 -20 8 -18"/>
-          </g>
-        </g>
-        <g class="front"></g>
-        <g class="clack s" opacity="0"><path d="M-46 0 l-9 -6 M-48 12 l-11 1 M46 0 l9 -6 M48 12 l11 1"/></g>
-        <g class="labels"></g>
-      </svg>
-      <figcaption id="plan-help">Your plan: later, next, now, done. Tap the stone, or slide it along.</figcaption>
-      <p class="sr" aria-live="polite"></p>
     </figure>
     <div class="parts">
       <div class="part" id="work-session">
@@ -401,77 +370,5 @@
   </div>
 </footer>
 
-<script>
-(function(){
-  var f=document.querySelector('.plan'); if(!f) return;
-  var svg=f.querySelector('svg'), NS='http://www.w3.org/2000/svg', live=f.querySelector('[aria-live]');
-  var names=['later','next','now','done'], cx=[95,245,395,545], at=0, busy=false;
-  var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var seed=7; function rnd(){ seed=(seed*16807)%2147483647; return seed/2147483647; }
-  function j(n){ return (rnd()-.5)*2*n; }
-  function el(n,a,p){ var e=document.createElementNS(NS,n); for(var k in a) e.setAttribute(k,a[k]); p.appendChild(e); return e; }
-  function line(p,x1,y1,x2,y2,c){ el('line',{x1:(x1+j(1.5)).toFixed(1),y1:(y1+j(1)).toFixed(1),x2:(x2+j(2)).toFixed(1),y2:(y2+j(1.5)).toFixed(1),'class':c||'s'},p); }
-  var B=svg.querySelector('.board'), F=svg.querySelector('.front'), L=svg.querySelector('.labels');
-  // slab: top surface and front edge, loosely drawn
-  el('path',{d:'M16 52 L624 48 L626 160 L14 164Z',fill:'color-mix(in srgb, var(--sienna-wash) 14%, var(--bg))'},B);
-  el('path',{'class':'w um',d:'M14 164 L626 160 L624 182 L16 186Z'},B);
-  el('path',{'class':'s',d:'M16 52 C200 50.5 420 49 624 48'},B);
-  el('path',{'class':'s faint',d:'M22 50 C220 49 430 47.6 618 46.5'},B);
-  el('path',{'class':'s',d:'M14 164 C220 162.8 430 161.4 626 160'},F);
-  el('path',{'class':'s',d:'M16 186 C220 184.6 420 183 624 182'},F);
-  el('path',{'class':'s',d:'M16 52 L14 186 M624 48 L626 182'},B);
-  for(var x=24;x<620;x+=9) line(F,x,169+j(1),x-7,181+j(1));
-  var cover='M14 128 ';
-  cx.forEach(function(c,i){
-    var l=c-58, r=c+58, t=78, m=128;
-    el('path',{'class':'w um',d:'M'+l+' '+t+' L'+r+' '+(t-1)+' L'+r+' '+m+' C'+(r-30)+' '+(m+13)+' '+(l+30)+' '+(m+13)+' '+l+' '+m+'Z'},B);
-    for(var y=t+3;y<t+20;y+=4.4) line(B,l+3,y,r-3,y+j(1));
-    for(var x2=l+4;x2<r-6;x2+=6.5) line(B,x2,t+2,x2+8,t+19);
-    for(var x3=l+8;x3<r-8;x3+=9) line(B,x3,t+26,x3+5,m+4,'s faint');
-    el('path',{'class':'s',d:'M'+(l-1)+' '+(t+.5)+' C'+(c-20)+' '+(t-.6)+' '+(c+20)+' '+(t+.4)+' '+(r+1)+' '+(t-1)},B);
-    el('path',{'class':'s',d:'M'+l+' '+t+' C'+(l+1)+' '+(t+20)+' '+(l-1)+' '+(m-20)+' '+(l+1)+' '+m+' M'+r+' '+(t-1)+' C'+(r-1)+' '+(t+20)+' '+(r+1)+' '+(m-20)+' '+(r-1)+' '+m},B);
-    cover+='L'+(l-1)+' '+m+' C'+(l+30)+' '+(m+13)+' '+(r-30)+' '+(m+13)+' '+(r+1)+' '+m+' ';
-    el('path',{'class':'s',d:'M'+(l-1)+' '+(m+.5)+' C'+(l+30)+' '+(m+13.5)+' '+(r-30)+' '+(m+12.5)+' '+(r+1)+' '+m},F);
-    el('path',{'class':'s faint',d:'M'+(l+4)+' '+(m+4)+' C'+(l+32)+' '+(m+15)+' '+(r-32)+' '+(m+15)+' '+(r-4)+' '+(m+4)},F);
-    var t2=el('text',{x:c,y:205},L); t2.textContent=names[i];
-  });
-  cover+='L626 128 L626 160 L14 164Z';
-  var cv=el('path',{d:cover,fill:'color-mix(in srgb, var(--sienna-wash) 14%, var(--bg))'},F); F.insertBefore(cv,F.firstChild);
-  
-  var H=svg.querySelector('.hatch');
-  for(var k=0;k<7;k++){ var x0=2+k*4.6; line(H,x0,16-k*.6,x0+9,4-k*1.6); }
-  for(var k2=0;k2<4;k2++){ var x1=12+k2*4.5; line(H,x1,12,x1+8,4-k2*2); }
-  var stone=svg.querySelector('.stone'), rock=stone.querySelector('.rock'), clack=svg.querySelector('.clack');
-  var X=cx[0], Y=0, R=0, BASE=130;
-  function draw(){ stone.setAttribute('transform','translate('+X.toFixed(1)+' '+(BASE+Y).toFixed(1)+')'); rock.setAttribute('transform','rotate('+R.toFixed(1)+')'); }
-  draw();
-  function tween(ms,fn){ return new Promise(function(res){ if(still){ fn(1); return res(); } var s=performance.now(); (function step(n){ var k=Math.min(1,(n-s)/ms); fn(k); if(k<1) requestAnimationFrame(step); else res(); })(s); }); }
-  var io=function(k){ return k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2; };
-  function click(){ clack.setAttribute('transform','translate('+X+' '+BASE+')'); if(still) return; tween(320,function(k){ clack.setAttribute('opacity',(k<.15?k/.15:1-(k-.15)/.85).toFixed(2)); }); }
-  function land(){ return tween(110,function(k){ Y=-34+34*k*k; draw(); }).then(function(){ click(); return tween(170,function(k){ Y=-3*Math.sin(Math.PI*k)*(1-k); draw(); }); }).then(function(){ Y=0; draw(); busy=false; live.textContent='Moved to '+names[at]+'.'; }); }
-  function go(i){
-    if(busy||i===at) return Promise.resolve(); busy=true;
-    var x0=X, x1=cx[i]; at=i;
-    return tween(150,function(k){ Y=-34*io(k); draw(); })
-    .then(function(){ return tween(300+Math.abs(x1-x0)*1.1,function(k){ X=x0+(x1-x0)*io(k); Y=-34-6*Math.sin(Math.PI*k); R=(x1>x0?1:-1)*7*Math.sin(Math.PI*k); draw(); }); })
-    .then(land);
-  }
-  function next(){ return go(at===3?0:at+1); }
-  var drag=null;
-  function sx(e){ var r=svg.getBoundingClientRect(); return (e.clientX-r.left)*640/r.width; }
-  svg.addEventListener('pointerdown',function(e){ if(busy) return; var p=sx(e); if(Math.abs(p-X)>50) return; drag={id:e.pointerId,o:p-X,m:false,x0:X}; svg.setPointerCapture(e.pointerId); tween(120,function(k){ Y=-34*k; draw(); }); });
-  svg.addEventListener('pointermove',function(e){ if(!drag||drag.id!==e.pointerId) return; var nx=Math.max(cx[0]-10,Math.min(cx[3]+10,sx(e)-drag.o)); if(Math.abs(nx-drag.x0)>4) drag.m=true; R=Math.max(-8,Math.min(8,(nx-X)*1.2)); X=nx; Y=-34; draw(); });
-  function up(e){ if(!drag||drag.id!==e.pointerId) return; var d=drag; drag=null;
-    if(!d.m){ tween(100,function(k){ Y=-34*(1-k); draw(); }).then(next); return; }
-    var best=0; cx.forEach(function(c,i){ if(Math.abs(c-X)<Math.abs(cx[best]-X)) best=i; });
-    var x0=X; busy=true; at=best;
-    tween(160,function(k){ X=x0+(cx[best]-x0)*io(k); R*=.8; draw(); }).then(function(){ R=0; return land(); });
-  }
-  svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
-  svg.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); next(); } if(e.key==='ArrowRight'){ e.preventDefault(); go(Math.min(3,at+1)); } if(e.key==='ArrowLeft'){ e.preventDefault(); go(Math.max(0,at-1)); } });
-  function wait(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
-  if(!still && 'IntersectionObserver' in window){ var o=new IntersectionObserver(function(es){ if(es[0].isIntersecting){ o.disconnect(); wait(600).then(function(){ return go(1); }).then(function(){ return wait(400); }).then(function(){ return go(2); }).then(function(){ return wait(500); }).then(function(){ return go(3); }); } },{threshold:.6}); o.observe(f); }
-})();
-</script>
 </body>
 </html>
