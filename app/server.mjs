@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 //   OIDC_CLIENT_ID, OIDC_CLIENT_SECRET   from the Pocket ID app
 //   SESSION_SECRET      32+ random characters
 //   ROOM_WORK_SESSION, ROOM_ONE_TO_ONE   Daily room URLs (kept out of the public repo)
+//   ROOM_INTRO          optional; intro-call room, listed on /host
 //   DAILY_API_KEY       lets admins get host links at /host (rooms are created there if missing)
 //   GROUP_COMMUNITY (default "community"), GROUP_ONE_ON_ONE (default "one-on-one"), GROUP_ADMIN (default "admin")
 
@@ -262,11 +263,13 @@ async function hostLink(roomUrl) {
 async function host(s) {
   let body;
   try {
-    const [ws, oo] = await Promise.all([hostLink(env("ROOM_WORK_SESSION")), hostLink(env("ROOM_ONE_TO_ONE"))]);
+    const intro = process.env.ROOM_INTRO;
+    const [ws, oo, ic] = await Promise.all([hostLink(env("ROOM_WORK_SESSION")), hostLink(env("ROOM_ONE_TO_ONE")), intro ? hostLink(intro) : null]);
     body = `  <div class="intro"><h1>Host</h1><p>Host links let you admit people at the door. They last 6 hours; reload this page for fresh ones.</p></div>
   <section><div class="actions">
     <a class="btn" href="${esc(ws)}" target="_blank" rel="noopener">Host the work session</a>
     <a href="${esc(oo)}" target="_blank" rel="noopener">Host a 1:1</a>
+    ${ic ? `<a href="${esc(ic)}" target="_blank" rel="noopener">Host an intro call</a>` : ""}
   </div></section>`;
   } catch (e) {
     body = `  <div class="intro"><h1>Host</h1><p>${esc(String(e.message ?? e))}. Check DAILY_API_KEY in the app's secrets.</p></div>`;

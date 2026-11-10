@@ -8,6 +8,7 @@ process.env.SESSION_SECRET = "x".repeat(40);
 process.env.ROOM_WORK_SESSION = "https://example.daily.co/ws-test";
 process.env.ROOM_ONE_TO_ONE = "https://example.daily.co/oo-test";
 process.env.DAILY_API_KEY = "dk";
+process.env.ROOM_INTRO = "https://example.daily.co/ic-test";
 const dailyCalls = [];
 
 let groups = ["one-on-one"];
@@ -97,7 +98,7 @@ test("admin gets host links, creating a missing room; others are redirected", as
   groups = ["admin"];
   const c = await signIn();
   const r = await (await handler(new Request("https://members.test/host", { headers: { cookie: c } }))).text();
-  assert(r.includes("ws-test?t=tok123") && r.includes("oo-test?t=tok123"), "host links");
+  assert(r.includes("ws-test?t=tok123") && r.includes("oo-test?t=tok123") && r.includes("ic-test?t=tok123"), "host links");
   assert(dailyCalls.some((u) => u.endsWith("/rooms")), "missing room created");
   groups = ["one-on-one"];
   const c2 = await signIn();
