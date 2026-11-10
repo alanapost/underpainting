@@ -12,6 +12,10 @@ process.env.ROOM_INTRO = "https://example.daily.co/ic-test";
 const dailyCalls = [];
 process.env.VIKUNJA_URL = "https://vk.test";
 process.env.VIKUNJA_TOKEN = "vt";
+process.env.TYMESLOT_WEBHOOK_TOKEN = "hooktok";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+process.env.DATA_DIR = mkdtempSync(tmpdir() + "/up-");
 
 let groups = ["one-on-one"];
 globalThis.fetch = (input) => {
@@ -126,4 +130,32 @@ test("home shows the member's own next steps from their plan", async () => {
   const r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
   assert(r.includes("https://vk.test/tasks/41") && r.includes("Draft the &lt;intro&gt;"), "steps listed and escaped");
   assert(r.includes("https://vk.test/projects/7"), "links their project");
+});
+
+const hook = (meeting, token = "hooktok") => handler(new Request("https://members.test/hooks/tymeslot", {
+  method: "POST", headers: { "x-tymeslot-token": token, "content-type": "application/json" },
+  body: JSON.stringify({ event: "meeting.created", data: { meeting } }),
+}));
+const mtg = (uid, startMs, extra = {}) => ({ uid, start_time: new Date(startMs).toISOString(), end_time: new Date(startMs + 45 * 60e3).toISOString(),
+  status: "confirmed", attendee: { email: "M@test", name: "Sam" }, booking_page: { slug: "one-on-one" }, urls: { reschedule: "https://book.test/r/" + uid }, ...extra });
+
+test("Tymeslot webhook: wrong token rejected; 1:1 member sees next booking, then a live join", async () => {
+  assert((await hook(mtg("x", Date.now()), "nope")).status === 401, "bad token rejected");
+  groups = ["one-on-one"];
+  const c = await signIn();
+  let r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(r.includes("left this month") && r.includes("Book one now"), "nudge when nothing booked");
+  assert((await hook(mtg("a", Date.now() + 864e5 * 0.5))).status === 200, "hook accepted");
+  r = await (await handler(new Request("https://members.test/one-on-one", { headers: { cookie: c } }))).text();
+  assert(r.includes("Your next 1:1 is") && r.includes("https://book.test/r/a"), "next booking shown");
+  await hook(mtg("b", Date.now() - 5 * 60e3));
+  r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(r.includes("Your 1:1 is starting") && r.includes("oo-test"), "live 1:1 join on home");
+  await hook(mtg("b", Date.now() - 5 * 60e3, { status: "cancelled" }));
+  r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(!r.includes("Your 1:1 is starting"), "cancelled booking ignored");
+  groups = ["community"];
+  const c2 = await signIn();
+  r = await (await handler(new Request("https://members.test/", { headers: { cookie: c2 } }))).text();
+  assert(!r.includes("1:1 is") && !r.includes("left this month"), "community member sees no 1:1 status");
 });

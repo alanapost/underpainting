@@ -7,5 +7,5 @@ COPY fonts ./fonts
 COPY brand ./brand
 ENV PORT=8080
 EXPOSE 8080
-USER node
-CMD ["node", "app/server.mjs"]
+# Starts as root only to hand the /data volume (bookings.json) to the node user, then runs as node.
+CMD ["sh", "-c", "mkdir -p /data && chown node:node /data && exec su node -s /bin/sh -c 'exec node app/server.mjs'"]
