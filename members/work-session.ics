@@ -26,8 +26,8 @@ DTSTART;TZID=America/Los_Angeles:20261111T100000
 DTEND;TZID=America/Los_Angeles:20261111T113000
 RRULE:FREQ=WEEKLY;BYDAY=WE
 SUMMARY:Underpainting work session
-LOCATION:https://underpainting.daily.co/work-session
-DESCRIPTION:Say what you're working on\, then work side by side for an hour.\nJoin: https://underpainting.daily.co/work-session\nMember page: https://underpainting.club/members/
-URL:https://underpainting.club/members/
+LOCATION:https://members.underpainting.club/
+DESCRIPTION:Say what you're working on\, then work side by side for an hour.\nMember page: https://members.underpainting.club/
+URL:https://members.underpainting.club/
 END:VEVENT
 END:VCALENDAR
