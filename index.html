@@ -178,12 +178,15 @@
   .how > h3 { margin-top: 2.75rem; }
   .loop { margin: 1.5rem 0 0; }
   .loop svg { display: block; width: 100%; max-width: 38rem; height: auto; }
-  .loop .s { fill: none; stroke: var(--sanguine); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; filter: url(#pencil); }
-  .loop .s.faint, .loop g.faint line { opacity: .45; stroke-width: 1.1; }
+  .loop { --pen: #24427f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .loop { --pen: #9db4e8; } }
+  :root[data-theme="dark"] .loop { --pen: #9db4e8; }
+  .loop .s { fill: none; stroke: var(--pen); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .loop .s.faint, .loop g.faint line { opacity: .35; stroke-width: 1; }
   .loop .w { filter: url(#wc); opacity: .22; }
   .loop .w.si { fill: var(--sienna-wash); }
   .loop text { font-family: 'Cormorant Garamond', Georgia, serif; }
-  .loop .n { font-size: 30px; fill: var(--sanguine); }
+  .loop .n { font-size: 30px; fill: var(--pen); }
   .loop .l { font-size: 21px; fill: var(--ink); }
   .loop .c { font-size: 24px; font-style: italic; fill: var(--ink); text-anchor: middle; }
 </style>
