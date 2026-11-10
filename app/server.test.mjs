@@ -168,3 +168,28 @@ test("Tymeslot webhook: wrong token rejected; 1:1 member sees next booking, then
   r = await (await handler(new Request("https://members.test/", { headers: { cookie: c2 } }))).text();
   assert(!r.includes("1:1 is") && !r.includes("left this month"), "community member sees no 1:1 status");
 });
+
+test("free access form: emails hello@, honeypot, missing fields, rate limit", async () => {
+  const { mail } = await import("./server.mjs");
+  const sent = [];
+  mail.send = async (m) => { sent.push(m); };
+  const post = (fields, ip = "1.2.3.4") => handler(new Request("https://members.test/free-access", {
+    method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "fly-client-ip": ip }, body: new URLSearchParams(fields),
+  }));
+  const ok = { name: "Robin\r\nBcc: x@evil.test", email: "robin@example.com", project: "A website", tier: "Community", pay: "$0" };
+  let r = await post(ok, "9.9.9.1");
+  assert(r.status === 303 && r.headers.get("location").endsWith("error=1"), "no SMTP settings: honest error");
+  process.env.SMTP_USER = "u@test"; process.env.SMTP_PASS = "p";
+  r = await post(ok, "9.9.9.2");
+  assert(r.headers.get("location") === "https://underpainting.club/free-access/?sent=1", "sent");
+  assert(sent.length === 1 && sent[0].replyTo === "robin@example.com" && sent[0].to === "hello@underpainting.club", "goes to hello@, reply-to requester");
+  assert(!sent[0].subject.includes("\n") && sent[0].text.includes("A website"), "no header injection; answers included");
+  r = await post({ ...ok, website: "spam" }, "9.9.9.3");
+  assert(r.headers.get("location").endsWith("sent=1") && sent.length === 1, "honeypot swallowed");
+  r = await post({ ...ok, email: "nope" }, "9.9.9.4");
+  assert(r.headers.get("location").endsWith("error=missing") && sent.length === 1, "bad email rejected");
+  for (let i = 0; i < 5; i++) await post(ok, "9.9.9.5");
+  r = await post(ok, "9.9.9.5");
+  assert(r.headers.get("location").endsWith("error=1") && sent.length === 6, "sixth in an hour is limited");
+  delete process.env.SMTP_USER; delete process.env.SMTP_PASS;
+});

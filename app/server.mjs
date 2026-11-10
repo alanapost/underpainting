@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
 import { timingSafeEqual, createHmac } from "node:crypto";
 import { pathToFileURL } from "node:url";
+import { connect as tlsConnect } from "node:tls";
 
 // Underpainting members app: signs members in through Pocket ID and serves their page.
 // Plain Node 20+ with no dependencies: `node app/server.mjs` (PORT, default 8000). No database. Settings come from env vars:
@@ -17,6 +18,9 @@ import { pathToFileURL } from "node:url";
 //   DATA_DIR (default /data; a Fly volume) holds bookings.json
 //   SESSIONS_PER_MONTH (default 2)
 //   DAILY_API_KEY       lets admins get host links at /host (rooms are created there if missing)
+//   SMTP_USER, SMTP_PASS  Fastmail login + app password; lets the public free access form email hello@
+//   SMTP_HOST (default smtp.fastmail.com, port 465), MAIL_FROM (default notify@underpainting.club), MAIL_TO (default hello@underpainting.club)
+//   SITE_URL (default https://underpainting.club) where the form lives
 //   GROUP_COMMUNITY (default "community"), GROUP_ONE_ON_ONE (default "one-on-one"), GROUP_ADMIN (default "admin")
 
 const env = (k, d) => {
@@ -431,6 +435,90 @@ async function serveStatic(path) {
   }
 }
 
+// ---------- public free access form (POST from underpainting.club/free-access/, emailed to hello@) ----------
+// Minimal SMTP over TLS (port 465, AUTH PLAIN). No dependencies; one message per connection.
+function smtpSend({ host, port = 465, user, pass, from, to, replyTo, subject, text, tls = {} }) {
+  return new Promise((resolve, reject) => {
+    const sock = tlsConnect({ host, port, servername: host, ...tls });
+    sock.setTimeout(15000, () => sock.destroy(new Error("SMTP timeout")));
+    let buf = "", waiter = null;
+    const next = () => new Promise((res, rej) => { waiter = { res, rej }; pump(); });
+    function pump() {
+      const m = buf.match(/(?:^|\r\n)(\d{3}) [^\r\n]*\r\n/);
+      if (!m || !waiter) return;
+      const end = m.index + m[0].length;
+      const w = waiter; waiter = null; buf = buf.slice(end);
+      w.res(Number(m[1]));
+    }
+    sock.setEncoding("utf8");
+    sock.on("data", (d) => { buf += d; pump(); });
+    sock.on("error", (e) => { if (waiter) waiter.rej(e); reject(e); });
+    const step = async (line, ok) => {
+      if (line !== null) sock.write(line + "\r\n");
+      const code = await next();
+      if (!ok.includes(code)) throw new Error(`SMTP ${code} after ${line === null ? "connect" : line.split(" ")[0]}`);
+    };
+    const hdr = (v) => /^[\x20-\x7e]*$/.test(v) ? v : `=?UTF-8?B?${Buffer.from(v).toString("base64")}?=`;
+    const body = Buffer.from(text.replace(/\r?\n/g, "\r\n")).toString("base64").replace(/.{76}/g, "$&\r\n");
+    const msg = [
+      `From: Underpainting <${from}>`, `To: ${to}`, ...(replyTo ? [`Reply-To: ${replyTo}`] : []),
+      `Subject: ${hdr(subject)}`, `Date: ${new Date().toUTCString().replace("GMT", "+0000")}`,
+      `Message-ID: <${randomStr()}@${from.split("@")[1]}>`, "MIME-Version: 1.0",
+      "Content-Type: text/plain; charset=utf-8", "Content-Transfer-Encoding: base64", "", body,
+    ].join("\r\n");
+    (async () => {
+      await step(null, [220]);
+      await step(`EHLO ${from.split("@")[1]}`, [250]);
+      await step(`AUTH PLAIN ${Buffer.from(`\0${user}\0${pass}`).toString("base64")}`, [235]);
+      await step(`MAIL FROM:<${from}>`, [250]);
+      await step(`RCPT TO:<${to}>`, [250, 251]);
+      await step("DATA", [354]);
+      await step(msg + "\r\n.", [250]); // base64 body never starts a line with "."
+      sock.end("QUIT\r\n");
+      resolve();
+    })().catch((e) => { sock.destroy(); reject(e); });
+  });
+}
+export const mail = { send: smtpSend };
+
+const SITE = process.env.SITE_URL ?? "https://underpainting.club";
+const hits = new Map(); // ip -> recent submit times; resets on restart, which is fine
+function limited(ip, now = Date.now()) {
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < 3600e3);
+  recent.push(now); hits.set(ip, recent);
+  if (hits.size > 5000) hits.clear();
+  return recent.length > 5;
+}
+async function freeAccess(req) {
+  const back = (q) => new Response(null, { status: 303, headers: { location: `${SITE}/free-access/?${q}` } });
+  let f;
+  try { f = await req.formData(); } catch { return back("error=1"); }
+  const g = (k, n = 4000) => String(f.get(k) ?? "").trim().slice(0, n);
+  if (g("website")) return back("sent=1"); // honeypot: bots fill it, people never see it
+  const ip = req.headers.get("fly-client-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "?";
+  if (limited(ip)) return back("error=1");
+  const one = (v) => v.replace(/[\r\n]+/g, " ");
+  const name = one(g("name", 200)), email = one(g("email", 200)), tier = one(g("tier", 50));
+  if (!name || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email) || !g("project") || !tier) return back("error=missing");
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) { console.error("free access: SMTP_USER/SMTP_PASS not set"); return back("error=1"); }
+  const text = [
+    `Name: ${name}`, `Email: ${email}`, "",
+    "What they're working on:", g("project"), "",
+    "What's in the way right now:", g("stuck") || "-", "",
+    `Membership that would help: ${tier}`, `What they can pay each month: ${one(g("pay", 100)) || "-"}`, "",
+    "Anything else:", g("else") || "-", "",
+    "Reply to this email to answer them directly.",
+  ].join("\n");
+  try {
+    await mail.send({
+      host: process.env.SMTP_HOST ?? "smtp.fastmail.com", user: process.env.SMTP_USER, pass: process.env.SMTP_PASS,
+      from: process.env.MAIL_FROM ?? "notify@underpainting.club", to: process.env.MAIL_TO ?? "hello@underpainting.club",
+      replyTo: email, subject: `Free access request: ${name}`, text,
+    });
+  } catch (e) { console.error("free access: send failed", e.message); return back("error=1"); }
+  return back("sent=1");
+}
+
 // ---------- router ----------
 export { safeNext };
 export async function handler(req) {
@@ -440,6 +528,7 @@ export async function handler(req) {
   if (pathname === "/callback") return callback(req);
   if (pathname === "/logout") return logout();
   if (pathname === "/hooks/tymeslot" && req.method === "POST") return tymeslotHook(req);
+  if (pathname === "/free-access" && req.method === "POST") return freeAccess(req);
   const file = await serveStatic(pathname);
   if (file) return file;
 
