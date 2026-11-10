@@ -49,6 +49,10 @@ fieldset { border: 0; margin: 0; padding: 0; }
 .choices input { accent-color: var(--accent); width: 1.05rem; height: 1.05rem; margin: 0; }
 button { margin-top: 3rem; padding: .7rem 1.25rem; background: var(--accent); color: var(--accent-ink); border: 0; font: 600 18px/1.4 'Source Serif 4', Georgia, serif; cursor: pointer; }
 .after { margin-top: 1rem; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.sent { padding-top: 3rem; }
+.sent h2 { font-family: 'Cormorant Garamond', Garamond, Georgia, serif; font-weight: 500; font-size: 1.6rem; line-height: 1.1; margin: 0; }
+.sent p { margin-top: .5rem; }
 .err { color: #a24e33; font-size: 16px; margin-top: 1rem; }
 @media (prefers-color-scheme: dark) { .err { color: #d0805f; } }
 footer { padding: 4rem 0 3rem; font-size: 16px; color: var(--muted); }
@@ -65,7 +69,8 @@ footer { padding: 4rem 0 3rem; font-size: 16px; color: var(--muted); }
     <p class="small">There are five free and reduced places. Every request gets a personal reply within two working days.</p>
   </div>
 
-  <form id="req" novalidate>
+  <form id="req" method="post" action="https://members.underpainting.club/free-access" novalidate>
+    <div class="hp" aria-hidden="true"><label for="website">Leave this empty</label><input type="text" id="website" name="website" tabindex="-1" autocomplete="off"></div>
     <div class="field">
       <label for="name">What should I call you?</label>
       <input type="text" id="name" name="name" autocomplete="name" required>
@@ -105,8 +110,13 @@ footer { padding: 4rem 0 3rem; font-size: 16px; color: var(--muted); }
 
     <p class="err" id="err" role="alert" hidden></p>
     <button type="submit">Send request</button>
-    <p class="small after">This opens your email app with your answers filled in. Prefer to write it yourself? Email <a href="mailto:hello@underpainting.club?subject=Free%20or%20reduced%20access%20request">hello@underpainting.club</a> with the same questions.</p>
+    <p class="small after">Your answers come straight to me. Prefer to write it yourself? Email <a href="mailto:hello@underpainting.club?subject=Free%20or%20reduced%20access%20request">hello@underpainting.club</a>.</p>
   </form>
+
+  <div class="sent" id="sent" hidden>
+    <h2>Sent. Thank you for asking.</h2>
+    <p>I’ll reply to the email you gave within two working days.</p>
+  </div>
 </main>
 
 <footer><div class="wrap"><p><a href="/">Underpainting</a> · <a href="mailto:hello@underpainting.club">hello@underpainting.club</a></p></div></footer>
@@ -115,37 +125,24 @@ footer { padding: 4rem 0 3rem; font-size: 16px; color: var(--muted); }
 (function () {
   var form = document.getElementById('req');
   var err = document.getElementById('err');
+  var q = location.search;
+  if (/sent=1/.test(q)) { form.hidden = true; document.getElementById('sent').hidden = false; }
+  else if (/error=missing/.test(q)) { err.textContent = 'A required answer was missing. Please check the form and send it again.'; err.hidden = false; }
+  else if (/error=1/.test(q)) { err.innerHTML = 'That didn’t send. Please try again in a few minutes, or email <a href="mailto:hello@underpainting.club">hello@underpainting.club</a>.'; err.hidden = false; }
   function v(id) { return document.getElementById(id).value.trim(); }
   form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var tier = form.querySelector('input[name=tier]:checked');
     var missing = [];
     if (!v('name')) missing.push('what to call you');
-    if (!/^\S+@\S+\.\S+$/.test(v('email'))) missing.push('your email');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email'))) missing.push('your email');
     if (!v('project')) missing.push('what you’re working on');
-    if (!tier) missing.push('which membership would help');
+    if (!form.querySelector('input[name=tier]:checked')) missing.push('which membership would help');
     if (missing.length) {
+      e.preventDefault();
       err.textContent = 'Still needed: ' + missing.join(', ') + '.';
       err.hidden = false;
       return;
     }
-    err.hidden = true;
-    var body = [
-      'Name: ' + v('name'),
-      'Email: ' + v('email'),
-      '',
-      'What I’m working on:', v('project'),
-      '',
-      'What’s in the way right now:', v('stuck') || '-',
-      '',
-      'Membership that would help: ' + tier.value,
-      'What I can pay each month: ' + (v('pay') || '-'),
-      '',
-      'Anything else:', v('else') || '-'
-    ].join('\n');
-    window.location.href = 'mailto:hello@underpainting.club'
-      + '?subject=' + encodeURIComponent('Free access request: ' + v('name'))
-      + '&body=' + encodeURIComponent(body);
+    form.querySelector('button').disabled = true;
   });
 })();
 </script>
