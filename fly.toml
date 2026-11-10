@@ -19,6 +19,11 @@ primary_region = "sjc"
     path = "/healthz"
     timeout = "5s"
 
+# One small volume for 1:1 bookings from Tymeslot. Create once: fly volumes create data --size 1 --region sjc
+[mounts]
+  source = "data"
+  destination = "/data"
+
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"

@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
+import { timingSafeEqual, createHmac } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
 // Underpainting members app: signs members in through Pocket ID and serves their page.
@@ -9,6 +10,12 @@ import { pathToFileURL } from "node:url";
 //   OIDC_CLIENT_ID, OIDC_CLIENT_SECRET   from the Pocket ID app
 //   SESSION_SECRET      32+ random characters
 //   ROOM_WORK_SESSION, ROOM_ONE_TO_ONE   Daily room URLs (kept out of the public repo)
+//   ROOM_INTRO          optional; intro-call room, listed on /host
+//   VIKUNJA_TOKEN       optional; read-only token (projects + tasks) of the account that owns members' plans
+//   VIKUNJA_URL (default https://plan.underpainting.club)
+//   TYMESLOT_WEBHOOK_TOKEN  optional; token set on Tymeslot's webhook to POST /hooks/tymeslot
+//   DATA_DIR (default /data; a Fly volume) holds bookings.json
+//   SESSIONS_PER_MONTH (default 2)
 //   DAILY_API_KEY       lets admins get host links at /host (rooms are created there if missing)
 //   GROUP_COMMUNITY (default "community"), GROUP_ONE_ON_ONE (default "one-on-one"), GROUP_ADMIN (default "admin")
 
@@ -66,6 +73,14 @@ const discovery = () =>
 const randomStr = () => b64u(crypto.getRandomValues(new Uint8Array(32)));
 const sha256 = async (s) => b64u(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(s))));
 
+// Only same-site paths: "//evil.com", "/\\evil.com" and tab tricks all resolve off-site and fall back to "/".
+function safeNext(next) {
+  try {
+    const u = new URL(next, "https://members.invalid");
+    return u.origin === "https://members.invalid" && next.startsWith("/") ? u.pathname + u.search : "/";
+  } catch { return "/"; }
+}
+
 async function login(req) {
   const d = await discovery();
   const state = randomStr(), verifier = randomStr();
@@ -77,7 +92,7 @@ async function login(req) {
   }).toString();
   return new Response(null, {
     status: 302,
-    headers: { location: u.toString(), "set-cookie": setCookie("up_login", await seal({ state, verifier, next: next.startsWith("/") ? next : "/" }), 600) },
+    headers: { location: u.toString(), "set-cookie": setCookie("up_login", await seal({ state, verifier, next: safeNext(next) }), 600) },
   });
 }
 
@@ -97,7 +112,7 @@ async function callback(req) {
   if (!ui.ok) return page("Sign-in problem", `<p>Couldn't read your account (${ui.status}). <a href="/login">Try again</a>.</p>`, null, 502);
   const info = await ui.json();
   const s = {
-    sub: info.sub, email: info.email ?? "", name: info.given_name ?? info.name ?? "",
+    sub: info.sub, email: info.email ?? "", name: info.given_name ?? info.name ?? "", user: info.preferred_username ?? "",
     groups: Array.isArray(info.groups) ? info.groups : [], exp: Date.now() + SESSION_DAYS * 864e5,
   };
   const h = new Headers({ location: pending.next });
@@ -162,8 +177,64 @@ function sessionBlock(room) {
     <div class="stage" id="ws-stage"></div>`;
 }
 
-function home(s) {
+// ---------- plan next steps (Vikunja, read-only; fails quietly to just the link) ----------
+const VIKUNJA = process.env.VIKUNJA_URL ?? "https://plan.underpainting.club";
+let planMap = { at: 0, projects: [] }; // [{ id, people: [{ username, email }] }], cached 10 min
+
+async function vk(path) {
+  const r = await fetch(`${VIKUNJA}/api/v1${path}`, { headers: { authorization: `Bearer ${process.env.VIKUNJA_TOKEN}` }, signal: AbortSignal.timeout(4000) });
+  if (!r.ok) throw new Error(`Vikunja ${path} ${r.status}`);
+  return r.json();
+}
+
+async function findPlan(s) {
+  if (Date.now() - planMap.at > 600e3) {
+    const projects = await vk("/projects?per_page=100");
+    const withPeople = await Promise.all(projects.map(async (p) => ({ id: p.id, people: await vk(`/projects/${p.id}/users`).catch(() => []) })));
+    planMap = { at: Date.now(), projects: withPeople };
+  }
+  const user = (s.user ?? "").replace(/ /g, "-").toLowerCase(), email = (s.email ?? "").toLowerCase();
+  return planMap.projects.find((p) => p.people.some((u) =>
+    (user && (u.username ?? "").toLowerCase() === user) || (email && (u.email ?? "").toLowerCase() === email)));
+}
+
+async function nextSteps(s) {
+  if (!process.env.VIKUNJA_TOKEN) return null;
+  try {
+    const p = await findPlan(s);
+    if (!p) return null;
+    // Prefer the Plan board: "Now" cards, then "Next", in board order.
+    const views = await vk(`/projects/${p.id}/views`).catch(() => []);
+    const board = views.find((v) => v.view_kind === "kanban");
+    if (board) {
+      const buckets = await vk(`/projects/${p.id}/views/${board.id}/tasks`).catch(() => null);
+      if (Array.isArray(buckets)) {
+        const pick = (name) => (buckets.find((b) => (b.title ?? "").trim().toLowerCase() === name)?.tasks ?? []).filter((t) => !t.done);
+        const tasks = [...pick("now"), ...pick("next")];
+        if (buckets.some((b) => /^(now|next)$/i.test((b.title ?? "").trim()))) return { project: p.id, tasks: tasks.slice(0, 3) };
+      }
+    }
+    const q = new URLSearchParams({ filter: "done = false", per_page: "3" });
+    q.append("sort_by", "due_date"); q.append("order_by", "asc"); q.append("sort_by", "position"); q.append("order_by", "asc");
+    const tasks = await vk(`/projects/${p.id}/tasks?${q}`);
+    return { project: p.id, tasks: (tasks ?? []).slice(0, 3) };
+  } catch (e) {
+    console.error(String(e));
+    return null;
+  }
+}
+
+function planBlock(steps) {
+  if (!steps) return `      <p class="muted">Your next steps, and what’s done.</p>
+      <p class="go"><a href="${LINKS.plan}">Open your plan</a></p>`;
+  const items = steps.tasks.map((t) => `        <li><a href="${VIKUNJA}/tasks/${t.id}">${esc(t.title ?? "")}</a></li>`).join("\n");
+  return `${items ? `      <ul class="steps">\n${items}\n      </ul>` : `      <p class="muted">Nothing open right now.</p>`}
+      <p class="go"><a href="${VIKUNJA}/projects/${steps.project}">Open your plan</a></p>`;
+}
+
+async function home(s) {
   const one = hasOne(s);
+  const ones = await myOnes(s);
   const ws = env("ROOM_WORK_SESSION");
   const hello = s.name ? `Welcome back, ${esc(s.name)}` : "Welcome back";
   const body = `  <div class="intro"><h1>${hello}</h1></div>
@@ -171,8 +242,7 @@ function home(s) {
   <section class="cols">
     <div>
       <h2>Plan</h2>
-      <p class="muted">Your next steps, and what’s done.</p>
-      <p class="go"><a href="${LINKS.plan}">Open your plan</a></p>
+${planBlock(await nextSteps(s))}
     </div>
     <div>
       <h2>Chat</h2>
@@ -183,7 +253,8 @@ function home(s) {
 
   <section>
     <h2>Session</h2>
-${sessionBlock(ws)}
+${ones?.live ? oneStatus(ones) : sessionBlock(ws)}
+${ones && !ones.live ? oneStatus(ones) : ""}
 ${one ? `    <p class="note"><a href="/one-on-one">Your 1:1</a>: join or book a session.</p>` : ""}
 ${isAdmin(s) ? `    <p class="note"><a href="/host">Host links</a> (only you see this).</p>` : ""}
   </section>
@@ -203,20 +274,91 @@ ${one ? `      <li><a href="${LINKS.plan}/user/settings/general"><span>Plan</spa
     `<script>if (document.body.dataset.live === '1') joinRoom(${JSON.stringify(ws)}, 'ws-stage', true);</script>\n`);
 }
 
-function oneOnOne(s) {
+// ---------- 1:1 bookings (from Tymeslot webhooks, kept in one JSON file) ----------
+const DATA_DIR = process.env.DATA_DIR ?? "/data";
+const PER_MONTH = Number(process.env.SESSIONS_PER_MONTH ?? 2);
+const ONE_SLUG = "one-on-one";
+let bookings = null; // { [uid]: { email, start, end, status, slug, name, reschedule } }
+
+async function loadBookings() {
+  if (bookings) return bookings;
+  try { bookings = JSON.parse(await readFile(`${DATA_DIR}/bookings.json`, "utf8")); } catch { bookings = {}; }
+  return bookings;
+}
+async function saveBookings() {
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(`${DATA_DIR}/bookings.json.tmp`, JSON.stringify(bookings));
+  await rename(`${DATA_DIR}/bookings.json.tmp`, `${DATA_DIR}/bookings.json`);
+}
+
+async function tymeslotHook(req) {
+  // Signature header "t=TIMESTAMP,v1=HEX": HMAC-SHA256 of `${t}.${rawBody}` keyed with the token; reject if older than 5 minutes.
+  const key = process.env.TYMESLOT_WEBHOOK_TOKEN, raw = await req.text();
+  const sig = Object.fromEntries((req.headers.get("x-tymeslot-signature") ?? "").split(",").map((kv) => kv.trim().split("=")));
+  const fresh = Math.abs(Date.now() / 1000 - Number(sig.t)) <= 300;
+  const want = key && sig.t ? createHmac("sha256", key).update(`${sig.t}.${raw}`).digest("hex") : "";
+  const got = sig.v1 ?? "";
+  if (!want || !fresh || got.length !== want.length || !timingSafeEqual(Buffer.from(got), Buffer.from(want))) return new Response("no", { status: 401 });
+  let body = null; try { body = JSON.parse(raw); } catch {}
+  const m = body?.data?.meeting;
+  if (!m?.uid) return new Response("ok"); // test pings and other events
+  await loadBookings();
+  // Retries are harmless (same uid overwrites); a late retry of an older update must not undo a newer one.
+  const prev = bookings[m.uid];
+  if (prev?.updated && m.updated_at && Date.parse(m.updated_at) < Date.parse(prev.updated)) return new Response("ok");
+  bookings[m.uid] = { updated: m.updated_at ?? "",
+    email: (m.attendee?.email ?? "").toLowerCase(), name: m.attendee?.name ?? "",
+    start: m.start_time, end: m.end_time, status: m.status ?? "", slug: m.booking_page?.slug ?? "",
+    reschedule: m.urls?.reschedule ?? "",
+  };
+  const cutoff = Date.now() - 400 * 864e5; // keep about a year
+  for (const [k, b] of Object.entries(bookings)) if (Date.parse(b.end) < cutoff) delete bookings[k];
+  await saveBookings();
+  return new Response("ok");
+}
+
+const ptMonth = (t) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit" }).format(t);
+const live = (b, now) => Date.parse(b.start) - 10 * 60e3 <= now && now <= Date.parse(b.end);
+
+async function myOnes(s, now = Date.now()) {
+  if (!s.groups.includes(G_ONE) || !s.email) return null;
+  const all = Object.values(await loadBookings()).filter((b) => b.email === s.email.toLowerCase() && b.slug === ONE_SLUG && !/cancel/i.test(b.status));
+  const month = all.filter((b) => ptMonth(new Date(b.start)) === ptMonth(new Date(now)));
+  const next = all.filter((b) => Date.parse(b.end) >= now).sort((a, b) => Date.parse(a.start) - Date.parse(b.start))[0] ?? null;
+  return { used: month.filter((b) => Date.parse(b.end) < now).length, booked: month.length, left: Math.max(0, PER_MONTH - month.length), next, live: next && live(next, now) };
+}
+
+const whenText = (iso) => `<time class="local" datetime="${esc(iso)}">${esc(new Date(iso).toLocaleString("en-US", { timeZone: "America/Los_Angeles", weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" }))} Pacific</time>`;
+
+function oneStatus(o) {
+  if (!o) return "";
+  if (o.live) return `    <p class="when live"><span class="dot" aria-hidden="true"></span>Your 1:1 is starting</p>
+    <div class="actions">
+      <a class="btn" href="${esc(env("ROOM_ONE_TO_ONE"))}" onclick="return joinRoom(this.href, 'oo-stage')">Join your 1:1</a>
+      <a href="${LINKS.plan}">Open your plan</a>
+    </div>
+    <div class="stage" id="oo-stage"></div>`;
+  const count = `${o.used} of ${PER_MONTH} sessions used this month${o.booked > o.used ? `, ${o.booked - o.used} booked` : ""}.`;
+  if (o.next) return `    <p>Your next 1:1 is ${whenText(o.next.start)}.${o.next.reschedule ? ` <a href="${esc(o.next.reschedule)}">Reschedule</a>` : ""}</p>
+    <p class="muted">${count}</p>`;
+  if (o.left > 0) return `    <p>You have ${o.left} 1:1 ${o.left === 1 ? "session" : "sessions"} left this month. <a href="/one-on-one#book">Book one now</a> while there's time on the calendar.</p>
+    <p class="muted">${count}</p>`;
+  return `    <p class="muted">${count}</p>`;
+}
+
+function oneOnOne(s, o) {
   const room = env("ROOM_ONE_TO_ONE");
   const body = `  <div class="intro">
     <h1>Your 1:1</h1>
     <p>Two 45-minute sessions a month, on your plan and what comes next.</p>
   </div>
   <section>
-    <p class="eyebrow">Session starting?</p>
-    <div class="actions">
+${o ? oneStatus(o) + "\n" : ""}${o?.live ? "" : `    <div class="actions">
       <a class="btn" href="${esc(room)}" onclick="return joinRoom(this.href, 'oo-stage')">Join your 1:1</a>
       <a href="${LINKS.plan}">Open your plan</a>
     </div>
     <div class="stage" id="oo-stage"></div>
-    <p class="note">Your booking email has the time. You’ll wait at the door for a moment until we let you in.</p>
+`}    <p class="note">You’ll wait at the door for a moment until you’re let in.</p>
   </section>
   <section id="book">
     <h2>Book a session</h2>
@@ -254,11 +396,13 @@ async function hostLink(roomUrl) {
 async function host(s) {
   let body;
   try {
-    const [ws, oo] = await Promise.all([hostLink(env("ROOM_WORK_SESSION")), hostLink(env("ROOM_ONE_TO_ONE"))]);
+    const intro = process.env.ROOM_INTRO;
+    const [ws, oo, ic] = await Promise.all([hostLink(env("ROOM_WORK_SESSION")), hostLink(env("ROOM_ONE_TO_ONE")), intro ? hostLink(intro) : null]);
     body = `  <div class="intro"><h1>Host</h1><p>Host links let you admit people at the door. They last 6 hours; reload this page for fresh ones.</p></div>
   <section><div class="actions">
     <a class="btn" href="${esc(ws)}" target="_blank" rel="noopener">Host the work session</a>
     <a href="${esc(oo)}" target="_blank" rel="noopener">Host a 1:1</a>
+    ${ic ? `<a href="${esc(ic)}" target="_blank" rel="noopener">Host an intro call</a>` : ""}
   </div></section>`;
   } catch (e) {
     body = `  <div class="intro"><h1>Host</h1><p>${esc(String(e.message ?? e))}. Check DAILY_API_KEY in the app's secrets.</p></div>`;
@@ -288,12 +432,14 @@ async function serveStatic(path) {
 }
 
 // ---------- router ----------
+export { safeNext };
 export async function handler(req) {
   const { pathname } = new URL(req.url);
   if (pathname === "/healthz") return new Response("ok");
   if (pathname === "/login") return login(req);
   if (pathname === "/callback") return callback(req);
   if (pathname === "/logout") return logout();
+  if (pathname === "/hooks/tymeslot" && req.method === "POST") return tymeslotHook(req);
   const file = await serveStatic(pathname);
   if (file) return file;
 
@@ -301,7 +447,7 @@ export async function handler(req) {
   if (!s || s.exp < Date.now()) return redirect(`/login?next=${encodeURIComponent(pathname)}`);
   if (!isMember(s)) return notMember(s);
   if (pathname === "/" || pathname === "/work-session") return home(s);
-  if (pathname === "/one-on-one") return hasOne(s) ? oneOnOne(s) : redirect("/");
+  if (pathname === "/one-on-one") return hasOne(s) ? oneOnOne(s, await myOnes(s)) : redirect("/");
   if (pathname === "/host") return isAdmin(s) ? host(s) : redirect("/");
   return page("Not found", `<div class="intro"><h1>Page not found</h1><p><a href="/">Back to your page</a></p></div>`, s, 404);
 }
@@ -311,7 +457,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const port = Number(process.env.PORT ?? 8000);
   createServer(async (nreq, nres) => {
     try {
-      const req = new Request(new URL(nreq.url, BASE_URL), { method: nreq.method, headers: nreq.headers });
+      const chunks = [];
+      if (nreq.method !== "GET" && nreq.method !== "HEAD") for await (const c of nreq) chunks.push(c);
+      const req = new Request(new URL(nreq.url, BASE_URL), { method: nreq.method, headers: nreq.headers, body: chunks.length ? Buffer.concat(chunks) : undefined });
       const res = await handler(req);
       const headers = {};
       res.headers.forEach((v, k) => { if (k !== "set-cookie") headers[k] = v; });

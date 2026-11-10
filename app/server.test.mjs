@@ -8,7 +8,14 @@ process.env.SESSION_SECRET = "x".repeat(40);
 process.env.ROOM_WORK_SESSION = "https://example.daily.co/ws-test";
 process.env.ROOM_ONE_TO_ONE = "https://example.daily.co/oo-test";
 process.env.DAILY_API_KEY = "dk";
+process.env.ROOM_INTRO = "https://example.daily.co/ic-test";
 const dailyCalls = [];
+process.env.VIKUNJA_URL = "https://vk.test";
+process.env.VIKUNJA_TOKEN = "vt";
+process.env.TYMESLOT_WEBHOOK_TOKEN = "hooktok";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+process.env.DATA_DIR = mkdtempSync(tmpdir() + "/up-");
 
 let groups = ["one-on-one"];
 globalThis.fetch = (input) => {
@@ -25,11 +32,20 @@ globalThis.fetch = (input) => {
     if (u.endsWith("/rooms")) return json({ name: "ws-test" });
     if (u.endsWith("/meeting-tokens")) return json({ token: "tok123" });
   }
-  if (u === "https://idp.test/userinfo") return json({ sub: "u1", email: "m@test", given_name: "Sam", groups });
+  if (u === "https://idp.test/userinfo") return json({ sub: "u1", email: "m@test", given_name: "Sam", preferred_username: "Sam P", groups });
+  if (u.startsWith("https://vk.test/api/v1/")) {
+    const path = u.slice("https://vk.test/api/v1".length);
+    if (path.startsWith("/projects?")) return json([{ id: 1, title: "Backlog" }, { id: 7, title: "Sam" }]);
+    if (path === "/projects/1/users") return json([]);
+    if (path === "/projects/7/users") return json([{ id: 3, username: "sam-p", permission: 1 }]);
+    if (path === "/projects/7/views") return json([{ id: 30, view_kind: "list" }, { id: 31, view_kind: "kanban" }]);
+    if (path === "/projects/7/views/31/tasks") return json([{ title: "Later", tasks: [{ id: 50, title: "Someday" }] }, { title: "Next", tasks: [{ id: 42, title: "Pick a name" }] }, { title: "Now", tasks: [{ id: 41, title: "Draft the <intro>" }] }]);
+    if (path.startsWith("/projects/7/tasks?")) return json([{ id: 41, title: "Draft the <intro>" }, { id: 42, title: "Pick a name" }]);
+  }
   return Promise.reject(new Error("unexpected fetch " + u));
 };
 
-const { handler } = await import("./server.mjs");
+const { handler, safeNext } = await import("./server.mjs");
 const assert = (c, m) => { if (!c) throw new Error(m); };
 const cookieOf = (r, name) => r.headers.getSetCookie().find((c) => c.startsWith(name + "=")).split(";")[0];
 
@@ -97,10 +113,58 @@ test("admin gets host links, creating a missing room; others are redirected", as
   groups = ["admin"];
   const c = await signIn();
   const r = await (await handler(new Request("https://members.test/host", { headers: { cookie: c } }))).text();
-  assert(r.includes("ws-test?t=tok123") && r.includes("oo-test?t=tok123"), "host links");
+  assert(r.includes("ws-test?t=tok123") && r.includes("oo-test?t=tok123") && r.includes("ic-test?t=tok123"), "host links");
   assert(dailyCalls.some((u) => u.endsWith("/rooms")), "missing room created");
   groups = ["one-on-one"];
   const c2 = await signIn();
   const r2 = await handler(new Request("https://members.test/host", { headers: { cookie: c2 } }));
   assert(r2.status === 302, "non-admin redirected");
+});
+
+test("sign-in never redirects off-site", () => {
+  for (const bad of ["//evil.com", "/\\evil.com", "/\t/evil.com", "https://evil.com", "javascript:alert(1)", "\\\\evil.com"]) assert(safeNext(bad) === "/", bad);
+  assert(safeNext("/one-on-one?x=1") === "/one-on-one?x=1", "same-site kept");
+});
+
+test("home shows the member's own next steps from their plan", async () => {
+  groups = ["community"];
+  const c = await signIn();
+  const r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(r.includes("https://vk.test/tasks/41") && r.includes("Draft the &lt;intro&gt;"), "steps listed and escaped");
+  assert(r.includes("https://vk.test/projects/7"), "links their project");
+  assert(r.indexOf("tasks/41") < r.indexOf("tasks/42") && !r.includes("Someday"), "Now first, then Next; Later left out");
+});
+
+import { createHmac } from "node:crypto";
+const hook = (meeting, token = "hooktok", age = 0) => {
+  const body = JSON.stringify({ event: "meeting.created", data: { meeting } }), ts = Math.floor(Date.now() / 1000) - age;
+  const v1 = createHmac("sha256", token).update(`${ts}.${body}`).digest("hex");
+  return handler(new Request("https://members.test/hooks/tymeslot", {
+    method: "POST", headers: { "x-tymeslot-signature": `t=${ts},v1=${v1}`, "content-type": "application/json" }, body,
+  }));
+};
+const mtg = (uid, startMs, extra = {}) => ({ uid, start_time: new Date(startMs).toISOString(), end_time: new Date(startMs + 45 * 60e3).toISOString(),
+  status: "confirmed", attendee: { email: "M@test", name: "Sam" }, booking_page: { slug: "one-on-one" }, urls: { reschedule: "https://book.test/r/" + uid }, ...extra });
+
+test("Tymeslot webhook: wrong token rejected; 1:1 member sees next booking, then a live join", async () => {
+  assert((await hook(mtg("x", Date.now()), "nope")).status === 401, "bad signature rejected");
+  assert((await hook(mtg("x", Date.now()), "hooktok", 600)).status === 401, "stale signature rejected");
+  groups = ["one-on-one"];
+  const c = await signIn();
+  let r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(r.includes("left this month") && r.includes("Book one now"), "nudge when nothing booked");
+  assert((await hook(mtg("a", Date.now() + 864e5 * 0.5))).status === 200, "hook accepted");
+  r = await (await handler(new Request("https://members.test/one-on-one", { headers: { cookie: c } }))).text();
+  assert(r.includes("Your next 1:1 is") && r.includes("https://book.test/r/a"), "next booking shown");
+  await hook(mtg("b", Date.now() - 5 * 60e3));
+  r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(r.includes("Your 1:1 is starting") && r.includes("oo-test"), "live 1:1 join on home");
+  await hook(mtg("b", Date.now() - 5 * 60e3, { status: "cancelled", updated_at: "2026-11-10T00:10:00Z" }));
+  await hook(mtg("b", Date.now() - 5 * 60e3, { updated_at: "2026-11-10T00:05:00Z" })); // late retry of an older event
+  r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(!r.includes("Your 1:1 is starting"), "cancelled booking ignored");
+  groups = ["community"];
+  const c2 = await signIn();
+  r = await (await handler(new Request("https://members.test/", { headers: { cookie: c2 } }))).text();
+  assert(!r.includes("1:1 is") && !r.includes("left this month"), "community member sees no 1:1 status");
 });
