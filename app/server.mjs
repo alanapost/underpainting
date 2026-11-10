@@ -10,6 +10,8 @@ import { pathToFileURL } from "node:url";
 //   SESSION_SECRET      32+ random characters
 //   ROOM_WORK_SESSION, ROOM_ONE_TO_ONE   Daily room URLs (kept out of the public repo)
 //   ROOM_INTRO          optional; intro-call room, listed on /host
+//   VIKUNJA_TOKEN       optional; read-only token (projects + tasks) of the account that owns members' plans
+//   VIKUNJA_URL (default https://plan.underpainting.club)
 //   DAILY_API_KEY       lets admins get host links at /host (rooms are created there if missing)
 //   GROUP_COMMUNITY (default "community"), GROUP_ONE_ON_ONE (default "one-on-one"), GROUP_ADMIN (default "admin")
 
@@ -106,7 +108,7 @@ async function callback(req) {
   if (!ui.ok) return page("Sign-in problem", `<p>Couldn't read your account (${ui.status}). <a href="/login">Try again</a>.</p>`, null, 502);
   const info = await ui.json();
   const s = {
-    sub: info.sub, email: info.email ?? "", name: info.given_name ?? info.name ?? "",
+    sub: info.sub, email: info.email ?? "", name: info.given_name ?? info.name ?? "", user: info.preferred_username ?? "",
     groups: Array.isArray(info.groups) ? info.groups : [], exp: Date.now() + SESSION_DAYS * 864e5,
   };
   const h = new Headers({ location: pending.next });
@@ -171,7 +173,51 @@ function sessionBlock(room) {
     <div class="stage" id="ws-stage"></div>`;
 }
 
-function home(s) {
+// ---------- plan next steps (Vikunja, read-only; fails quietly to just the link) ----------
+const VIKUNJA = process.env.VIKUNJA_URL ?? "https://plan.underpainting.club";
+let planMap = { at: 0, projects: [] }; // [{ id, people: [{ username, email }] }], cached 10 min
+
+async function vk(path) {
+  const r = await fetch(`${VIKUNJA}/api/v1${path}`, { headers: { authorization: `Bearer ${process.env.VIKUNJA_TOKEN}` }, signal: AbortSignal.timeout(4000) });
+  if (!r.ok) throw new Error(`Vikunja ${path} ${r.status}`);
+  return r.json();
+}
+
+async function findPlan(s) {
+  if (Date.now() - planMap.at > 600e3) {
+    const projects = await vk("/projects?per_page=100");
+    const withPeople = await Promise.all(projects.map(async (p) => ({ id: p.id, people: await vk(`/projects/${p.id}/users`).catch(() => []) })));
+    planMap = { at: Date.now(), projects: withPeople };
+  }
+  const user = (s.user ?? "").replace(/ /g, "-").toLowerCase(), email = (s.email ?? "").toLowerCase();
+  return planMap.projects.find((p) => p.people.some((u) =>
+    (user && (u.username ?? "").toLowerCase() === user) || (email && (u.email ?? "").toLowerCase() === email)));
+}
+
+async function nextSteps(s) {
+  if (!process.env.VIKUNJA_TOKEN) return null;
+  try {
+    const p = await findPlan(s);
+    if (!p) return null;
+    const q = new URLSearchParams({ filter: "done = false", per_page: "3" });
+    q.append("sort_by", "due_date"); q.append("order_by", "asc"); q.append("sort_by", "position"); q.append("order_by", "asc");
+    const tasks = await vk(`/projects/${p.id}/tasks?${q}`);
+    return { project: p.id, tasks: (tasks ?? []).slice(0, 3) };
+  } catch (e) {
+    console.error(String(e));
+    return null;
+  }
+}
+
+function planBlock(steps) {
+  if (!steps) return `      <p class="muted">Your next steps, and what’s done.</p>
+      <p class="go"><a href="${LINKS.plan}">Open your plan</a></p>`;
+  const items = steps.tasks.map((t) => `        <li><a href="${VIKUNJA}/tasks/${t.id}">${esc(t.title ?? "")}</a></li>`).join("\n");
+  return `${items ? `      <ul class="steps">\n${items}\n      </ul>` : `      <p class="muted">Nothing open right now.</p>`}
+      <p class="go"><a href="${VIKUNJA}/projects/${steps.project}">Open your plan</a></p>`;
+}
+
+async function home(s) {
   const one = hasOne(s);
   const ws = env("ROOM_WORK_SESSION");
   const hello = s.name ? `Welcome back, ${esc(s.name)}` : "Welcome back";
@@ -180,8 +226,7 @@ function home(s) {
   <section class="cols">
     <div>
       <h2>Plan</h2>
-      <p class="muted">Your next steps, and what’s done.</p>
-      <p class="go"><a href="${LINKS.plan}">Open your plan</a></p>
+${planBlock(await nextSteps(s))}
     </div>
     <div>
       <h2>Chat</h2>

@@ -66,5 +66,8 @@ footer { padding: 4rem 0 3rem; font-size: 16px; color: var(--muted); }
 @media (min-width: 34rem) { .cols { grid-template-columns: 1fr 1fr; } }
 .cols p.muted { margin-top: .5rem; }
 .go { margin-top: .75rem; }
+ul.steps { margin: .5rem 0 0; padding-left: 1.1rem; }
+ul.steps li + li { margin-top: .25rem; }
+ul.steps a { color: var(--ink); }
 section > h2 + .when { margin-top: .5rem; }
 section > h2 + ul.links { margin-top: 1rem; }

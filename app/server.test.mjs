@@ -10,6 +10,8 @@ process.env.ROOM_ONE_TO_ONE = "https://example.daily.co/oo-test";
 process.env.DAILY_API_KEY = "dk";
 process.env.ROOM_INTRO = "https://example.daily.co/ic-test";
 const dailyCalls = [];
+process.env.VIKUNJA_URL = "https://vk.test";
+process.env.VIKUNJA_TOKEN = "vt";
 
 let groups = ["one-on-one"];
 globalThis.fetch = (input) => {
@@ -26,7 +28,14 @@ globalThis.fetch = (input) => {
     if (u.endsWith("/rooms")) return json({ name: "ws-test" });
     if (u.endsWith("/meeting-tokens")) return json({ token: "tok123" });
   }
-  if (u === "https://idp.test/userinfo") return json({ sub: "u1", email: "m@test", given_name: "Sam", groups });
+  if (u === "https://idp.test/userinfo") return json({ sub: "u1", email: "m@test", given_name: "Sam", preferred_username: "Sam P", groups });
+  if (u.startsWith("https://vk.test/api/v1/")) {
+    const path = u.slice("https://vk.test/api/v1".length);
+    if (path.startsWith("/projects?")) return json([{ id: 1, title: "Backlog" }, { id: 7, title: "Sam" }]);
+    if (path === "/projects/1/users") return json([]);
+    if (path === "/projects/7/users") return json([{ id: 3, username: "sam-p", permission: 1 }]);
+    if (path.startsWith("/projects/7/tasks?")) return json([{ id: 41, title: "Draft the <intro>" }, { id: 42, title: "Pick a name" }]);
+  }
   return Promise.reject(new Error("unexpected fetch " + u));
 };
 
@@ -109,4 +118,12 @@ test("admin gets host links, creating a missing room; others are redirected", as
 test("sign-in never redirects off-site", () => {
   for (const bad of ["//evil.com", "/\\evil.com", "/\t/evil.com", "https://evil.com", "javascript:alert(1)", "\\\\evil.com"]) assert(safeNext(bad) === "/", bad);
   assert(safeNext("/one-on-one?x=1") === "/one-on-one?x=1", "same-site kept");
+});
+
+test("home shows the member's own next steps from their plan", async () => {
+  groups = ["community"];
+  const c = await signIn();
+  const r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
+  assert(r.includes("https://vk.test/tasks/41") && r.includes("Draft the &lt;intro&gt;"), "steps listed and escaped");
+  assert(r.includes("https://vk.test/projects/7"), "links their project");
 });
