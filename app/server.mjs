@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, createHmac } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
 // Underpainting members app: signs members in through Pocket ID and serves their page.
@@ -292,13 +292,21 @@ async function saveBookings() {
 }
 
 async function tymeslotHook(req) {
-  const want = process.env.TYMESLOT_WEBHOOK_TOKEN, got = req.headers.get("x-tymeslot-token") ?? "";
-  if (!want || got.length !== want.length || !timingSafeEqual(Buffer.from(got), Buffer.from(want))) return new Response("no", { status: 401 });
-  const body = await req.json().catch(() => null);
+  // Signature header "t=TIMESTAMP,v1=HEX": HMAC-SHA256 of `${t}.${rawBody}` keyed with the token; reject if older than 5 minutes.
+  const key = process.env.TYMESLOT_WEBHOOK_TOKEN, raw = await req.text();
+  const sig = Object.fromEntries((req.headers.get("x-tymeslot-signature") ?? "").split(",").map((kv) => kv.trim().split("=")));
+  const fresh = Math.abs(Date.now() / 1000 - Number(sig.t)) <= 300;
+  const want = key && sig.t ? createHmac("sha256", key).update(`${sig.t}.${raw}`).digest("hex") : "";
+  const got = sig.v1 ?? "";
+  if (!want || !fresh || got.length !== want.length || !timingSafeEqual(Buffer.from(got), Buffer.from(want))) return new Response("no", { status: 401 });
+  let body = null; try { body = JSON.parse(raw); } catch {}
   const m = body?.data?.meeting;
   if (!m?.uid) return new Response("ok"); // test pings and other events
   await loadBookings();
-  bookings[m.uid] = {
+  // Retries are harmless (same uid overwrites); a late retry of an older update must not undo a newer one.
+  const prev = bookings[m.uid];
+  if (prev?.updated && m.updated_at && Date.parse(m.updated_at) < Date.parse(prev.updated)) return new Response("ok");
+  bookings[m.uid] = { updated: m.updated_at ?? "",
     email: (m.attendee?.email ?? "").toLowerCase(), name: m.attendee?.name ?? "",
     start: m.start_time, end: m.end_time, status: m.status ?? "", slug: m.booking_page?.slug ?? "",
     reschedule: m.urls?.reschedule ?? "",

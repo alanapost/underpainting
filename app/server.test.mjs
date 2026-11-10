@@ -135,15 +135,20 @@ test("home shows the member's own next steps from their plan", async () => {
   assert(r.indexOf("tasks/41") < r.indexOf("tasks/42") && !r.includes("Someday"), "Now first, then Next; Later left out");
 });
 
-const hook = (meeting, token = "hooktok") => handler(new Request("https://members.test/hooks/tymeslot", {
-  method: "POST", headers: { "x-tymeslot-token": token, "content-type": "application/json" },
-  body: JSON.stringify({ event: "meeting.created", data: { meeting } }),
-}));
+import { createHmac } from "node:crypto";
+const hook = (meeting, token = "hooktok", age = 0) => {
+  const body = JSON.stringify({ event: "meeting.created", data: { meeting } }), ts = Math.floor(Date.now() / 1000) - age;
+  const v1 = createHmac("sha256", token).update(`${ts}.${body}`).digest("hex");
+  return handler(new Request("https://members.test/hooks/tymeslot", {
+    method: "POST", headers: { "x-tymeslot-signature": `t=${ts},v1=${v1}`, "content-type": "application/json" }, body,
+  }));
+};
 const mtg = (uid, startMs, extra = {}) => ({ uid, start_time: new Date(startMs).toISOString(), end_time: new Date(startMs + 45 * 60e3).toISOString(),
   status: "confirmed", attendee: { email: "M@test", name: "Sam" }, booking_page: { slug: "one-on-one" }, urls: { reschedule: "https://book.test/r/" + uid }, ...extra });
 
 test("Tymeslot webhook: wrong token rejected; 1:1 member sees next booking, then a live join", async () => {
-  assert((await hook(mtg("x", Date.now()), "nope")).status === 401, "bad token rejected");
+  assert((await hook(mtg("x", Date.now()), "nope")).status === 401, "bad signature rejected");
+  assert((await hook(mtg("x", Date.now()), "hooktok", 600)).status === 401, "stale signature rejected");
   groups = ["one-on-one"];
   const c = await signIn();
   let r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
@@ -154,7 +159,8 @@ test("Tymeslot webhook: wrong token rejected; 1:1 member sees next booking, then
   await hook(mtg("b", Date.now() - 5 * 60e3));
   r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
   assert(r.includes("Your 1:1 is starting") && r.includes("oo-test"), "live 1:1 join on home");
-  await hook(mtg("b", Date.now() - 5 * 60e3, { status: "cancelled" }));
+  await hook(mtg("b", Date.now() - 5 * 60e3, { status: "cancelled", updated_at: "2026-11-10T00:10:00Z" }));
+  await hook(mtg("b", Date.now() - 5 * 60e3, { updated_at: "2026-11-10T00:05:00Z" })); // late retry of an older event
   r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
   assert(!r.includes("Your 1:1 is starting"), "cancelled booking ignored");
   groups = ["community"];
