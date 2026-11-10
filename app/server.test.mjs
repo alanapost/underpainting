@@ -38,6 +38,8 @@ globalThis.fetch = (input) => {
     if (path.startsWith("/projects?")) return json([{ id: 1, title: "Backlog" }, { id: 7, title: "Sam" }]);
     if (path === "/projects/1/users") return json([]);
     if (path === "/projects/7/users") return json([{ id: 3, username: "sam-p", permission: 1 }]);
+    if (path === "/projects/7/views") return json([{ id: 30, view_kind: "list" }, { id: 31, view_kind: "kanban" }]);
+    if (path === "/projects/7/views/31/tasks") return json([{ title: "Later", tasks: [{ id: 50, title: "Someday" }] }, { title: "Next", tasks: [{ id: 42, title: "Pick a name" }] }, { title: "Now", tasks: [{ id: 41, title: "Draft the <intro>" }] }]);
     if (path.startsWith("/projects/7/tasks?")) return json([{ id: 41, title: "Draft the <intro>" }, { id: 42, title: "Pick a name" }]);
   }
   return Promise.reject(new Error("unexpected fetch " + u));
@@ -130,6 +132,7 @@ test("home shows the member's own next steps from their plan", async () => {
   const r = await (await handler(new Request("https://members.test/", { headers: { cookie: c } }))).text();
   assert(r.includes("https://vk.test/tasks/41") && r.includes("Draft the &lt;intro&gt;"), "steps listed and escaped");
   assert(r.includes("https://vk.test/projects/7"), "links their project");
+  assert(r.indexOf("tasks/41") < r.indexOf("tasks/42") && !r.includes("Someday"), "Now first, then Next; Later left out");
 });
 
 const hook = (meeting, token = "hooktok") => handler(new Request("https://members.test/hooks/tymeslot", {

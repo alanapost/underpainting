@@ -203,6 +203,17 @@ async function nextSteps(s) {
   try {
     const p = await findPlan(s);
     if (!p) return null;
+    // Prefer the Plan board: "Now" cards, then "Next", in board order.
+    const views = await vk(`/projects/${p.id}/views`).catch(() => []);
+    const board = views.find((v) => v.view_kind === "kanban");
+    if (board) {
+      const buckets = await vk(`/projects/${p.id}/views/${board.id}/tasks`).catch(() => null);
+      if (Array.isArray(buckets)) {
+        const pick = (name) => (buckets.find((b) => (b.title ?? "").trim().toLowerCase() === name)?.tasks ?? []).filter((t) => !t.done);
+        const tasks = [...pick("now"), ...pick("next")];
+        if (buckets.some((b) => /^(now|next)$/i.test((b.title ?? "").trim()))) return { project: p.id, tasks: tasks.slice(0, 3) };
+      }
+    }
     const q = new URLSearchParams({ filter: "done = false", per_page: "3" });
     q.append("sort_by", "due_date"); q.append("order_by", "asc"); q.append("sort_by", "position"); q.append("order_by", "asc");
     const tasks = await vk(`/projects/${p.id}/tasks?${q}`);
