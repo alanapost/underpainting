@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask for free access · Underpainting</title>
+<meta name="description" content="Free and reduced places at Underpainting. Pay what you can, and $0 is fine.">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/brand/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/brand/favicon-180.png">
+<style>
+:root { --bg: #f2ece1; --ink: #2a221d; --muted: #6b5b4d; --accent: #7c3f25; --accent-ink: #fff; --line: #c9baa4; --field: #faf6ef; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1e1915; --ink: #efe6da; --muted: #bba996; --accent: #d08a5c; --accent-ink: #1e1915; --line: #4a3e35; --field: #26201b; }
+}
+@font-face { font-family: 'Cormorant Garamond'; src: url(/fonts/cormorant-garamond-latin-500-normal.woff2) format('woff2'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Source Serif 4'; src: url(/fonts/source-serif-4-latin-400-normal.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Source Serif 4'; src: url(/fonts/source-serif-4-latin-600-normal.woff2) format('woff2'); font-weight: 600; font-display: swap; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.6 'Source Serif 4', Charter, Georgia, serif; }
+.wrap { max-width: 36rem; margin: 0 auto; padding: 0 1rem; }
+a { color: var(--accent); }
+p { margin: 0; }
+h1, .wordmark { font-family: 'Cormorant Garamond', Garamond, Georgia, serif; font-weight: 500; line-height: 1.1; margin: 0; }
+h1 { font-size: clamp(2.4rem, 8vw, 3.2rem); }
+header { padding: 1.5rem 0 0; }
+.wordmark { font-size: 1.35rem; color: var(--ink); text-decoration: none; }
+/* spacing: 0.5rem inside a group, 1.5rem between items, 3rem between sections */
+.intro { padding-top: 3rem; }
+.intro p { margin-top: 1.5rem; }
+.intro h1 + p { margin-top: 1rem; }
+.small { color: var(--muted); font-size: 16px; }
+form { padding-top: 3rem; }
+.field { margin-top: 1.5rem; }
+.field:first-child { margin-top: 0; }
+label, legend { display: block; font-weight: 600; padding: 0; }
+.opt { font-weight: 400; color: var(--muted); }
+.help { display: block; color: var(--muted); font-size: 16px; margin-top: .25rem; }
+input[type=text], input[type=email], textarea {
+  display: block; width: 100%; margin-top: .5rem; padding: .6rem .7rem;
+  font: inherit; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 2px;
+}
+textarea { min-height: 6.5rem; resize: vertical; }
+input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+fieldset { border: 0; margin: 0; padding: 0; }
+.choices { margin-top: .5rem; }
+.choices label { font-weight: 400; display: flex; gap: .6rem; align-items: center; padding: .2rem 0; }
+.choices input { accent-color: var(--accent); width: 1.05rem; height: 1.05rem; margin: 0; }
+button { margin-top: 3rem; padding: .7rem 1.25rem; background: var(--accent); color: var(--accent-ink); border: 0; font: 600 18px/1.4 'Source Serif 4', Georgia, serif; cursor: pointer; }
+.after { margin-top: 1rem; }
+.err { color: #a24e33; font-size: 16px; margin-top: 1rem; }
+@media (prefers-color-scheme: dark) { .err { color: #d0805f; } }
+footer { padding: 4rem 0 3rem; font-size: 16px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="wordmark" href="/">Underpainting</a></div></header>
+
+<main class="wrap">
+  <div class="intro">
+    <h1>Ask for free access</h1>
+    <p>If the price is what stands between you and your project, ask. Free and reduced places are for anyone who needs them right now. Pay what you can, and $0 is fine. You don’t need to prove anything or explain your finances.</p>
+    <p>Asking takes a bit of nerve. So does starting again on something that matters to you. This form is short on purpose.</p>
+    <p class="small">There are five free and reduced places. Every request gets a personal reply within two working days.</p>
+  </div>
+
+  <form id="req" novalidate>
+    <div class="field">
+      <label for="name">What should I call you?</label>
+      <input type="text" id="name" name="name" autocomplete="name" required>
+    </div>
+    <div class="field">
+      <label for="email">Your email</label>
+      <span class="help" id="email-help">Your reply goes here.</span>
+      <input type="email" id="email" name="email" autocomplete="email" aria-describedby="email-help" required>
+    </div>
+    <div class="field">
+      <label for="project">What are you working on?</label>
+      <span class="help" id="project-help">A sentence or two is plenty. Half-formed is fine.</span>
+      <textarea id="project" name="project" aria-describedby="project-help" required></textarea>
+    </div>
+    <div class="field">
+      <label for="stuck">What’s in the way right now? <span class="opt">(optional)</span></label>
+      <span class="help" id="stuck-help">Getting started, keeping going, knowing what to do first, the technical parts, or something else.</span>
+      <textarea id="stuck" name="stuck" aria-describedby="stuck-help"></textarea>
+    </div>
+    <fieldset class="field">
+      <legend>Which membership would help?</legend>
+      <div class="choices">
+        <label><input type="radio" name="tier" value="Community" required> Community</label>
+        <label><input type="radio" name="tier" value="Community + 1:1"> Community + 1:1</label>
+        <label><input type="radio" name="tier" value="Not sure yet"> Not sure yet</label>
+      </div>
+    </fieldset>
+    <div class="field">
+      <label for="pay">What can you pay each month? <span class="opt">(optional)</span></label>
+      <span class="help" id="pay-help">$0 is a complete answer.</span>
+      <input type="text" id="pay" name="pay" inputmode="decimal" aria-describedby="pay-help">
+    </div>
+    <div class="field">
+      <label for="else">Anything else you’d like me to know? <span class="opt">(optional)</span></label>
+      <textarea id="else" name="else"></textarea>
+    </div>
+
+    <p class="err" id="err" role="alert" hidden></p>
+    <button type="submit">Send request</button>
+    <p class="small after">This opens your email app with your answers filled in. Prefer to write it yourself? Email <a href="mailto:hello@underpainting.club?subject=Free%20or%20reduced%20access%20request">hello@underpainting.club</a> with the same questions.</p>
+  </form>
+</main>
+
+<footer><div class="wrap"><p><a href="/">Underpainting</a> · <a href="mailto:hello@underpainting.club">hello@underpainting.club</a></p></div></footer>
+
+<script>
+(function () {
+  var form = document.getElementById('req');
+  var err = document.getElementById('err');
+  function v(id) { return document.getElementById(id).value.trim(); }
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var tier = form.querySelector('input[name=tier]:checked');
+    var missing = [];
+    if (!v('name')) missing.push('what to call you');
+    if (!/^\S+@\S+\.\S+$/.test(v('email'))) missing.push('your email');
+    if (!v('project')) missing.push('what you’re working on');
+    if (!tier) missing.push('which membership would help');
+    if (missing.length) {
+      err.textContent = 'Still needed: ' + missing.join(', ') + '.';
+      err.hidden = false;
+      return;
+    }
+    err.hidden = true;
+    var body = [
+      'Name: ' + v('name'),
+      'Email: ' + v('email'),
+      '',
+      'What I’m working on:', v('project'),
+      '',
+      'What’s in the way right now:', v('stuck') || '-',
+      '',
+      'Membership that would help: ' + tier.value,
+      'What I can pay each month: ' + (v('pay') || '-'),
+      '',
+      'Anything else:', v('else') || '-'
+    ].join('\n');
+    window.location.href = 'mailto:hello@underpainting.club'
+      + '?subject=' + encodeURIComponent('Free access request: ' + v('name'))
+      + '&body=' + encodeURIComponent(body);
+  });
+})();
+</script>
+</body>
+</html>
