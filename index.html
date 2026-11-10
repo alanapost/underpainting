@@ -166,6 +166,9 @@
   .how .parts { display: grid; gap: 2rem; margin-top: 2.5rem; }
   .how .part h3 { margin: 0 0 .35rem; }
   .how .part p { margin: .35rem 0 0; }
+  .steps { list-style: none; counter-reset: s; padding: 0; margin: 2rem 0 1rem; display: grid; gap: 1rem; }
+  .steps li { counter-increment: s; position: relative; padding-left: 2.6rem; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -.35rem; font: 500 2rem/1 'Cormorant Garamond', Georgia, serif; color: var(--sanguine); }
 </style>
 </head>
 <body>
@@ -239,8 +242,14 @@
         <div class="lname">Direction</div>
         <div class="slice"><span>Your plan: priorities and next steps</span></div>
       </div>
-      <figcaption>Each layer builds on the one below: a clear plan, a rhythm that keeps you going, and 1:1 help filling in what you don’t know yet.</figcaption>
     </figure>
+    <ol class="steps">
+      <li><strong>Pick the next step.</strong> In a 1:1, you work out what matters most right now and the smallest thing that moves it forward. It goes on your plan under “now”.</li>
+      <li><strong>Do it in company.</strong> Bring it to the Wednesday work session and work on it for an hour alongside other people.</li>
+      <li><strong>Ask when you’re stuck.</strong> Post in the chat or on your plan, and get an answer within two working days.</li>
+      <li><strong>Look back, then go again.</strong> At your next 1:1, you see what moved, adjust the plan and pick the next step.</li>
+    </ol>
+    <p>Each round, the plan gets clearer and deciding what to do gets easier. On Community, you bring your own next step to the session and the chat.</p>
     <div class="parts">
       <div class="part" id="work-session">
         <h3>A weekly work session · free</h3>
